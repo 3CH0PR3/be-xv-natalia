@@ -9,20 +9,20 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 class GuestExpelled implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+  use Dispatchable, InteractsWithSockets;
 
-    public function __construct(
-        public readonly string $deviceId,
-        public readonly string $tableCode,
-    ) {}
+  public function __construct(
+    public readonly string $deviceId,
+    public readonly string $tableCode,
+  ) {}
 
-    public function broadcastOn(): array
-    {
-        return [new Channel("device.{$this->deviceId}")];
-    }
+  public function broadcastOn(): array
+  {
+    return [new Channel("device.{$this->deviceId}")];
+  }
 
-    public function broadcastAs(): string
-    {
-        return 'guest.expelled';
-    }
+  public function broadcastAs(): string
+  {
+    return 'guest.expelled';
+  }
 }

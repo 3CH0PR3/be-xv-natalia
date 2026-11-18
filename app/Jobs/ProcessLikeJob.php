@@ -16,60 +16,65 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessLikeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, InvalidatesCache;
+  use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, InvalidatesCache;
 
-    public int $tries = 3;
-    public int $timeout = 30;
+  public int $tries = 3;
+  public int $timeout = 30;
 
-    public function __construct(
-        public int $memoryId,
-        public string $actorKey,
-        public string $choice,
-        public ?int $likes = null,
-        public ?int $fires = null,
-        public ?int $cheers = null
-    ) {
-        $this->queue = 'default';
+  public function __construct(
+    public int $memoryId,
+    public string $actorKey,
+    public string $choice,
+    public ?int $likes = null,
+    public ?int $fires = null,
+    public ?int $cheers = null
+  ) {
+    $this->queue = 'default';
+  }
+
+  public function handle(): void
+  {
+    $memory = Memory::with('event')->find($this->memoryId);
+    if (!$memory) {
+      return;
     }
 
-    public function handle(): void
-    {
-        $memory = Memory::with('event')->find($this->memoryId);
-        if (!$memory) {
-            return;
-        }
+    $likes = $this->likes;
+    $fires = $this->fires;
+    $cheers = $this->cheers;
 
-        $likes = $this->likes;
-        $fires = $this->fires;
-        $cheers = $this->cheers;
+    if ($likes === null || $fires === null || $cheers === null) {
+      $likes = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'likes')->count();
+      $fires = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'fires')->count();
+      $cheers = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'cheers')->count();
 
-        if ($likes === null || $fires === null || $cheers === null) {
-            $likes = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'likes')->count();
-            $fires = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'fires')->count();
-            $cheers = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'cheers')->count();
-
-            $memory->update([
-                'likes_count' => $likes,
-                'fires_count' => $fires,
-                'cheers_count' => $cheers,
-            ]);
-        }
-
-        Cache::store('redis')->forget("memory:{$memory->external_id}");
-        $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
-
-        $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
-
-        broadcast(new MemoryReactionUpdated(
-            $eventCode,
-            $memory->external_id,
-            $likes,
-            $fires,
-            $cheers,
-            $this->actorKey,
-            $this->choice
-        ));
-
-        Log::info("ProcessLikeJob: Processed and broadcasted reaction {$this->choice} on Memory #{$this->memoryId} by {$this->actorKey}");
+      $memory->update([
+        'likes_count' => $likes,
+        'fires_count' => $fires,
+        'cheers_count' => $cheers,
+      ]);
     }
+
+    Cache::store('redis')->forget("memory:{$memory->external_id}");
+    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+
+    $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
+
+    broadcast(new MemoryReactionUpdated(
+      $eventCode,
+      $memory->external_id,
+      $likes,
+      $fires,
+      $cheers,
+      $this->actorKey,
+      $this->choice
+    ));
+  }
+
+  public function failed(\Throwable $exception): void
+  {
+    Log::error("ProcessLikeJob failed for memory #{$this->memoryId}: " . $exception->getMessage(), [
+      'exception' => $exception,
+    ]);
+  }
 }

@@ -42,10 +42,10 @@ echo "[Paso 2] Verificando catálogo de 6 mesas...\n";
 $tables = EventTable::ordered()->get();
 echo "✓ Total mesas en BD: " . $tables->count() . "\n";
 foreach ($tables as $t) {
-    echo "  - {$t->code} ({$t->slug}) - Capacidad: {$t->capacity}\n";
+  echo "  - {$t->code} ({$t->slug}) - Capacidad: {$t->capacity}\n";
 }
 if ($tables->count() !== 6) {
-    throw new Exception("Error: Se esperaban 6 mesas.");
+  throw new Exception("Error: Se esperaban 6 mesas.");
 }
 echo "\n";
 
@@ -55,7 +55,7 @@ $response = file_get_contents('http://127.0.0.1:8001/api/v1/memories');
 $memoriesJson = json_decode($response, true);
 echo "✓ Respuesta recibida. Cantidad de fotos en muro: " . count($memoriesJson['data']) . "\n";
 if (count($memoriesJson['data']) !== 0) {
-    throw new Exception("Error: Se esperaba feed vacío.");
+  throw new Exception("Error: Se esperaba feed vacío.");
 }
 echo "✓ Estado verificado: El muro se muestra vacío para invitados sin fotos.\n\n";
 
@@ -71,18 +71,18 @@ $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 echo "✓ Bloqueo sin QR HTTP Status: {$httpCode} (Esperado 403)\n";
 if ($httpCode !== 403) {
-    throw new Exception("Error: debía retornar 403 por falta de QR check-in.");
+  throw new Exception("Error: debía retornar 403 por falta de QR check-in.");
 }
 echo "✓ Middleware 'device.lock' funcionando correctamente.\n\n";
 
 // 5. Escaneo de QR y Check-in en Mesa 01 (Mesa 01 · Principal)
 echo "[Paso 5] Invitada escanea QR de Mesa 01 y realiza Check-in...\n";
 $guestData = [
-    'eventCode' => 'XV-NATALIA',
-    'tableCode' => 'Mesa 01 · Principal',
-    'guestName' => 'Sofía Mendoza',
-    'deviceId' => 'dev-sofia-guest-441',
-    'hwFingerprint' => 'fp-canvas-audio-webgl-sofia-1234',
+  'eventCode' => 'XV-NATALIA',
+  'tableCode' => 'Mesa 01 · Principal',
+  'guestName' => 'Sofía Mendoza',
+  'deviceId' => 'dev-sofia-guest-441',
+  'hwFingerprint' => 'fp-canvas-audio-webgl-sofia-1234',
 ];
 
 $ch = curl_init('http://127.0.0.1:8001/api/v1/checkin');
@@ -97,8 +97,8 @@ curl_close($ch);
 echo "✓ Check-in HTTP Status: {$httpCode}\n";
 $checkinRes = json_decode($checkinRaw, true);
 if ($httpCode !== 201) {
-    echo "Respuesta: " . $checkinRaw . "\n";
-    throw new Exception("Fallo en Check-in");
+  echo "Respuesta: " . $checkinRaw . "\n";
+  throw new Exception("Fallo en Check-in");
 }
 echo "✓ Invitada registrada exitosamente: {$checkinRes['data']['guestName']} en {$checkinRes['data']['tableCode']}\n";
 
@@ -129,23 +129,23 @@ echo "✓ Archivo JPEG generado temporalmente en {$tmpImgPath} (" . filesize($tm
 echo "[Paso 7] Subiendo foto con pie de foto al backend (POST /api/v1/memories con X-Device-Id)...\n";
 $cFile = new CURLFile($tmpImgPath, 'image/jpeg', 'recuerdo_sofia_quinceanera.jpg');
 $postFields = [
-    'eventCode' => 'XV-NATALIA',
-    'guestName' => 'Sofía Mendoza',
-    'tableCode' => 'Mesa 01 · Principal',
-    'ownerDeviceId' => 'dev-sofia-guest-441',
-    'ownerActorKey' => 'actor-sofia-guest-441',
-    'momentTag' => 'Vals de las Flores',
-    'caption' => 'Mis mejores deseos en tus quince primaveras Natalia, que Dios te bendiga siempre! ✨🎉',
-    'files[0]' => $cFile,
+  'eventCode' => 'XV-NATALIA',
+  'guestName' => 'Sofía Mendoza',
+  'tableCode' => 'Mesa 01 · Principal',
+  'ownerDeviceId' => 'dev-sofia-guest-441',
+  'ownerActorKey' => 'actor-sofia-guest-441',
+  'momentTag' => 'Vals de las Flores',
+  'caption' => 'Mis mejores deseos en tus quince primaveras Natalia, que Dios te bendiga siempre! ✨🎉',
+  'files[0]' => $cFile,
 ];
 
 $ch = curl_init('http://127.0.0.1:8001/api/v1/memories');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Accept: application/json',
-    'X-Device-Id: dev-sofia-guest-441',
-    'X-Actor-Key: actor-sofia-guest-441',
+  'Accept: application/json',
+  'X-Device-Id: dev-sofia-guest-441',
+  'X-Actor-Key: actor-sofia-guest-441',
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
 $uploadRaw = curl_exec($ch);
@@ -155,8 +155,8 @@ curl_close($ch);
 echo "✓ Upload HTTP Status: {$httpCode}\n";
 $uploadRes = json_decode($uploadRaw, true);
 if ($httpCode !== 201) {
-    echo "Respuesta error: " . $uploadRaw . "\n";
-    throw new Exception("Fallo al subir recuerdo");
+  echo "Respuesta error: " . $uploadRaw . "\n";
+  throw new Exception("Fallo al subir recuerdo");
 }
 
 $memoryId = $uploadRes['data']['id'];
@@ -169,7 +169,7 @@ echo "✓ Etiqueta de Momento: {$uploadRes['data']['momentTag']}\n\n";
 echo "[Paso 8] Verificación estricta en base de datos MySQL (xv_natalia)...\n";
 $dbMemory = Memory::with('mediaItems')->where('external_id', $memoryId)->first();
 if (!$dbMemory) {
-    throw new Exception("Error: Recuerdo no encontrado en tabla memories");
+  throw new Exception("Error: Recuerdo no encontrado en tabla memories");
 }
 
 echo "✓ Registro en tabla 'memories':\n";
@@ -184,7 +184,7 @@ echo "  - Likes: {$dbMemory->likes_count} | Fires: {$dbMemory->fires_count} | Sh
 
 $mediaItem = $dbMemory->mediaItems->first();
 if (!$mediaItem) {
-    throw new Exception("Error: Elemento multimedia no guardado en tabla memory_media_items");
+  throw new Exception("Error: Elemento multimedia no guardado en tabla memory_media_items");
 }
 echo "✓ Registro en tabla 'memory_media_items':\n";
 echo "  - File Path: {$mediaItem->file_path}\n";
@@ -203,17 +203,17 @@ echo "✓ Primera foto mostrada: Autor '{$feedRes['data'][0]['guestName']}', Pie
 // 10. Reaccionar a su propia foto (reacción 'fires' 🔥)
 echo "[Paso 10] Invitada reacciona con 'fires' 🔥 a su propia foto...\n";
 $reactData = [
-    'actorKey' => 'actor-sofia-guest-441',
-    'deviceId' => 'dev-sofia-guest-441',
-    'choice' => 'fires',
+  'actorKey' => 'actor-sofia-guest-441',
+  'deviceId' => 'dev-sofia-guest-441',
+  'choice' => 'fires',
 ];
 $ch = curl_init("http://127.0.0.1:8001/api/v1/memories/{$memoryId}/reactions/toggle");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'Accept: application/json',
-    'X-Device-Id: dev-sofia-guest-441',
+  'Content-Type: application/json',
+  'Accept: application/json',
+  'X-Device-Id: dev-sofia-guest-441',
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($reactData));
 $reactRaw = curl_exec($ch);
@@ -236,10 +236,10 @@ $ch = curl_init("http://127.0.0.1:8001/api/v1/memories/{$memoryId}/caption");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'Accept: application/json',
-    'X-Device-Id: dev-sofia-guest-441',
-    'X-Actor-Key: actor-sofia-guest-441',
+  'Content-Type: application/json',
+  'Accept: application/json',
+  'X-Device-Id: dev-sofia-guest-441',
+  'X-Actor-Key: actor-sofia-guest-441',
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['caption' => $newCaption]));
 $editRaw = curl_exec($ch);
@@ -258,8 +258,8 @@ $ch = curl_init("http://127.0.0.1:8001/api/v1/memories/{$memoryId}/shares");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Accept: application/json',
-    'X-Device-Id: dev-sofia-guest-441',
+  'Accept: application/json',
+  'X-Device-Id: dev-sofia-guest-441',
 ]);
 $shareRaw = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -273,11 +273,11 @@ echo "✓ Verificado en MySQL: shares_count={$dbMemory->shares_count}\n\n";
 // 13. Check-in de Carlos en Mesa 02 y comentario
 echo "[Paso 13] Check-in de Carlos en Mesa 02 y publicación de comentario...\n";
 $carlosCheckin = [
-    'eventCode' => 'XV-NATALIA',
-    'tableCode' => 'Mesa 02 · Orquídea',
-    'guestName' => 'Carlos Alvarado',
-    'deviceId' => 'dev-carlos-guest-882',
-    'actorKey' => 'actor-carlos-guest-882',
+  'eventCode' => 'XV-NATALIA',
+  'tableCode' => 'Mesa 02 · Orquídea',
+  'guestName' => 'Carlos Alvarado',
+  'deviceId' => 'dev-carlos-guest-882',
+  'actorKey' => 'actor-carlos-guest-882',
 ];
 $ch = curl_init('http://127.0.0.1:8001/api/v1/checkin');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -288,20 +288,20 @@ curl_exec($ch);
 curl_close($ch);
 
 $commentData = [
-    'author' => 'Carlos Alvarado',
-    'table' => 'Mesa 02 · Orquídea',
-    'text' => '¡Qué momento tan hermoso! La pasamos increíble anoche.',
-    'ownerDeviceId' => 'dev-carlos-guest-882',
-    'ownerActorKey' => 'actor-carlos-guest-882',
+  'author' => 'Carlos Alvarado',
+  'table' => 'Mesa 02 · Orquídea',
+  'text' => '¡Qué momento tan hermoso! La pasamos increíble anoche.',
+  'ownerDeviceId' => 'dev-carlos-guest-882',
+  'ownerActorKey' => 'actor-carlos-guest-882',
 ];
 $ch = curl_init("http://127.0.0.1:8001/api/v1/memories/{$memoryId}/comments");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'Accept: application/json',
-    'X-Device-Id: dev-carlos-guest-882',
-    'X-Actor-Key: actor-carlos-guest-882',
+  'Content-Type: application/json',
+  'Accept: application/json',
+  'X-Device-Id: dev-carlos-guest-882',
+  'X-Actor-Key: actor-carlos-guest-882',
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($commentData));
 $commentRaw = curl_exec($ch);
@@ -319,10 +319,10 @@ $ch = curl_init("http://127.0.0.1:8001/api/v1/memories/{$memoryId}/caption");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'Accept: application/json',
-    'X-Device-Id: dev-carlos-guest-882',
-    'X-Actor-Key: actor-carlos-guest-882',
+  'Content-Type: application/json',
+  'Accept: application/json',
+  'X-Device-Id: dev-carlos-guest-882',
+  'X-Actor-Key: actor-carlos-guest-882',
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['caption' => 'Intento no autorizado']));
 $hackRaw = curl_exec($ch);
@@ -331,7 +331,7 @@ curl_close($ch);
 
 echo "✓ Intento no autorizado HTTP: {$httpCode} (Esperado: 403 Forbidden)\n";
 if ($httpCode !== 403) {
-    throw new Exception("Error de seguridad: debió ser 403 Forbidden");
+  throw new Exception("Error de seguridad: debió ser 403 Forbidden");
 }
 echo "✓ Protección de autoría validada con éxito.\n\n";
 
@@ -367,7 +367,7 @@ echo "✓ Bloqueos restantes en MySQL: " . DeviceLock::count() . "\n";
 
 // Limpiar archivo temporal si quedó
 if (file_exists($tmpImgPath)) {
-    unlink($tmpImgPath);
+  unlink($tmpImgPath);
 }
 
 echo "\n====================================================================\n";

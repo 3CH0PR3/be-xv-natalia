@@ -17,124 +17,124 @@ use Illuminate\Support\Facades\Storage;
 
 class GenerateTableQrsAction
 {
-    public function execute(Event $event, ?string $baseUrl = null): Collection
-    {
-        $cleanBaseUrl = $this->resolveBaseUrl($baseUrl);
-        $disk = Storage::disk(config('xv.media_disk', 'public'));
-        $targetDir = "qrs/{$event->code}";
-        $disk->makeDirectory($targetDir);
+  public function execute(Event $event, ?string $baseUrl = null): Collection
+  {
+    $cleanBaseUrl = $this->resolveBaseUrl($baseUrl);
+    $disk = Storage::disk(config('xv.media_disk', 'public'));
+    $targetDir = "qrs/{$event->code}";
+    $disk->makeDirectory($targetDir);
 
-        $tables = EventTable::forEvent($event->id)->ordered()->get();
-        $renderer = new ImageRenderer(new RendererStyle(600), new SvgImageBackEnd());
-        $writer = new Writer($renderer);
+    $tables = EventTable::forEvent($event->id)->ordered()->get();
+    $renderer = new ImageRenderer(new RendererStyle(600), new SvgImageBackEnd());
+    $writer = new Writer($renderer);
 
-        foreach ($tables as $table) {
-            $accessUrl = $this->buildTableAccessUrl($cleanBaseUrl, $table->code);
-            $svgPath = "{$targetDir}/qr-{$table->slug}.svg";
-            $pngPath = "{$targetDir}/qr-{$table->slug}.png";
+    foreach ($tables as $table) {
+      $accessUrl = $this->buildTableAccessUrl($cleanBaseUrl, $table->code);
+      $svgPath = "{$targetDir}/qr-{$table->slug}.svg";
+      $pngPath = "{$targetDir}/qr-{$table->slug}.png";
 
-            $svgContent = $writer->writeString($accessUrl);
-            $disk->put($svgPath, $svgContent);
+      $svgContent = $writer->writeString($accessUrl);
+      $disk->put($svgPath, $svgContent);
 
-            $pngContent = $this->renderPngBytes($accessUrl);
-            $disk->put($pngPath, $pngContent);
+      $pngContent = $this->renderPngBytes($accessUrl);
+      $disk->put($pngPath, $pngContent);
 
-            $table->update([
-                'qr_image_path' => $pngPath,
-                'qr_svg_path' => $svgPath,
-                'access_url' => $accessUrl,
-                'qr_generated_at' => now(),
-            ]);
-        }
-
-        Cache::store('redis')->forget("tables:event:{$event->id}");
-
-        $refreshed = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
-
-        $tablePayload = $refreshed->map(static fn (EventTable $t): array => [
-            'id' => $t->slug,
-            'number' => $t->number,
-            'code' => $t->code,
-            'capacity' => $t->capacity,
-            'guestsConnected' => $t->deviceLocks->count(),
-        ])->all();
-
-        broadcast(new TableOccupancyUpdated($event->code, $tablePayload))->toOthers();
-
-        return $refreshed;
+      $table->update([
+        'qr_image_path' => $pngPath,
+        'qr_svg_path' => $svgPath,
+        'access_url' => $accessUrl,
+        'qr_generated_at' => now(),
+      ]);
     }
 
-    private function resolveBaseUrl(?string $candidate): string
-    {
-        $trimmed = trim((string) $candidate);
-        if ($trimmed !== '') {
-            return rtrim($trimmed, '/');
-        }
+    Cache::store('redis')->forget("tables:event:{$event->id}");
 
-        $fromRequest = $this->resolveBaseUrlFromRequest();
-        if ($fromRequest !== '') {
-            return $fromRequest;
-        }
+    $refreshed = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
 
-        return rtrim(config('app.url', 'http://localhost:3000'), '/');
+    $tablePayload = $refreshed->map(static fn (EventTable $t): array => [
+      'id' => $t->slug,
+      'number' => $t->number,
+      'code' => $t->code,
+      'capacity' => $t->capacity,
+      'guestsConnected' => $t->deviceLocks->count(),
+    ])->all();
+
+    broadcast(new TableOccupancyUpdated($event->code, $tablePayload))->toOthers();
+
+    return $refreshed;
+  }
+
+  private function resolveBaseUrl(?string $candidate): string
+  {
+    $trimmed = trim((string) $candidate);
+    if ($trimmed !== '') {
+      return rtrim($trimmed, '/');
     }
 
-    private function resolveBaseUrlFromRequest(): string
-    {
-        if (!app()->bound('request')) {
-            return '';
-        }
-
-        $req = app('request');
-        $origin = (string) $req->header('origin');
-        if ($origin !== '') {
-            return rtrim($origin, '/');
-        }
-
-        return rtrim($req->getSchemeAndHttpHost(), '/');
+    $fromRequest = $this->resolveBaseUrlFromRequest();
+    if ($fromRequest !== '') {
+      return $fromRequest;
     }
 
-    private function buildTableAccessUrl(string $baseUrl, string $tableCode): string
-    {
-        return $baseUrl . '/acceso?' . http_build_query(['mesa' => $tableCode]);
+    return rtrim(config('app.url', 'http://localhost:3000'), '/');
+  }
+
+  private function resolveBaseUrlFromRequest(): string
+  {
+    if (!app()->bound('request')) {
+      return '';
     }
 
-    private function renderPngBytes(string $text): string
-    {
-        $qr = Encoder::encode($text, ErrorCorrectionLevel::M());
-        $matrix = $qr->getMatrix();
-        $matrixWidth = $matrix->getWidth();
-        $matrixHeight = $matrix->getHeight();
-        $scale = 16;
-        $margin = 2;
-        $size = ($matrixWidth + $margin * 2) * $scale;
+    $req = app('request');
+    $origin = (string) $req->header('origin');
+    if ($origin !== '') {
+      return rtrim($origin, '/');
+    }
 
-        $im = imagecreatetruecolor($size, $size);
-        $white = imagecolorallocate($im, 255, 255, 255);
-        $dark = imagecolorallocate($im, 20, 10, 15);
-        imagefill($im, 0, 0, $white);
+    return rtrim($req->getSchemeAndHttpHost(), '/');
+  }
 
-        for ($y = 0; $y < $matrixHeight; $y++) {
-            for ($x = 0; $x < $matrixWidth; $x++) {
-                if ($matrix->get($x, $y) !== 1) {
-                    continue;
-                }
-                imagefilledrectangle(
-                    $im,
-                    ($x + $margin) * $scale,
-                    ($y + $margin) * $scale,
-                    ($x + $margin + 1) * $scale - 1,
-                    ($y + $margin + 1) * $scale - 1,
-                    $dark
-                );
-            }
+  private function buildTableAccessUrl(string $baseUrl, string $tableCode): string
+  {
+    return $baseUrl . '/acceso?' . http_build_query(['mesa' => $tableCode]);
+  }
+
+  private function renderPngBytes(string $text): string
+  {
+    $qr = Encoder::encode($text, ErrorCorrectionLevel::M());
+    $matrix = $qr->getMatrix();
+    $matrixWidth = $matrix->getWidth();
+    $matrixHeight = $matrix->getHeight();
+    $scale = 16;
+    $margin = 2;
+    $size = ($matrixWidth + $margin * 2) * $scale;
+
+    $im = imagecreatetruecolor($size, $size);
+    $white = imagecolorallocate($im, 255, 255, 255);
+    $dark = imagecolorallocate($im, 20, 10, 15);
+    imagefill($im, 0, 0, $white);
+
+    for ($y = 0; $y < $matrixHeight; $y++) {
+      for ($x = 0; $x < $matrixWidth; $x++) {
+        if ($matrix->get($x, $y) !== 1) {
+          continue;
         }
-
-        ob_start();
-        imagepng($im);
-        $pngData = ob_get_clean() ?: '';
-        imagedestroy($im);
-
-        return $pngData;
+        imagefilledrectangle(
+          $im,
+          ($x + $margin) * $scale,
+          ($y + $margin) * $scale,
+          ($x + $margin + 1) * $scale - 1,
+          ($y + $margin + 1) * $scale - 1,
+          $dark
+        );
+      }
     }
+
+    ob_start();
+    imagepng($im);
+    $pngData = ob_get_clean() ?: '';
+    imagedestroy($im);
+
+    return $pngData;
+  }
 }

@@ -13,25 +13,25 @@ use Illuminate\Http\Request;
 
 class EventStateController extends Controller
 {
-    use ApiResponser;
+  use ApiResponser;
 
-    public function __construct(
-        private readonly EventStateService $service,
-    ) {}
+  public function __construct(
+    private readonly EventStateService $service,
+  ) {}
 
-    public function show(Request $request): JsonResponse
-    {
-        $state = $this->service->getEventState(ViewerContextData::fromRequest($request));
-        return $this->sendResponse(
-            new EventStateResource($state),
-            'Estado del evento consultado.',
-            200
-        );
-    }
+  public function show(Request $request): JsonResponse
+  {
+    $state = $this->service->getEventState(ViewerContextData::fromRequest($request));
+    return $this->sendResponse(
+      new EventStateResource($state),
+      'Estado del evento consultado.',
+      200
+    );
+  }
 
-    public function celebrate(CelebratePartyRequest $request): JsonResponse
-    {
-        $result = $this->service->toggleCelebration($request->toDto());
-        return $this->sendResponse($result, 'Reacción de fiesta registrada.', 200);
-    }
+  public function celebrate(CelebratePartyRequest $request): JsonResponse
+  {
+    $result = $this->service->toggleCelebration($request->toDto());
+    return $this->sendResponse($result, 'Reacción de fiesta registrada.', 200);
+  }
 }

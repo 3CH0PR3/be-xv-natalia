@@ -9,59 +9,59 @@ use App\Models\Event;
 
 class ResolveDeviceLockAction
 {
-    public function __construct(
-        private readonly SyncDeviceFingerprintsAction $syncFingerprints,
-    ) {}
+  public function __construct(
+    private readonly SyncDeviceFingerprintsAction $syncFingerprints,
+  ) {}
 
-    /** @return array{lock: ?DeviceLock, restoredByFingerprint: bool} */
-    public function execute(Event $event, ResolveDeviceLockData $data): array
-    {
-        [$lock, $restoredByFp] = $this->findExistingLock(
-            $event,
-            $data->deviceId,
-            $data->candidateFingerprints
-        );
+  /** @return array{lock: ?DeviceLock, restoredByFingerprint: bool} */
+  public function execute(Event $event, ResolveDeviceLockData $data): array
+  {
+    [$lock, $restoredByFp] = $this->findExistingLock(
+      $event,
+      $data->deviceId,
+      $data->candidateFingerprints
+    );
 
-        if (!$lock) {
-            return ['lock' => null, 'restoredByFingerprint' => false];
-        }
-
-        $this->syncFingerprints->execute($lock, $data->candidateFingerprints);
-
-        if (!empty($data->hardwareSummary)) {
-            $lock->update(['hardware_summary' => $data->hardwareSummary]);
-        }
-
-        return [
-            'lock' => $lock->fresh(['table']),
-            'restoredByFingerprint' => $restoredByFp,
-        ];
+    if (!$lock) {
+      return ['lock' => null, 'restoredByFingerprint' => false];
     }
 
-    /** @return array{0: ?DeviceLock, 1: bool} */
-    public function findExistingLock(Event $event, string $deviceId, array $candidates): array
-    {
-        $byDevice = $deviceId !== ''
-            ? DeviceLock::with('table')
-                ->forEvent($event->id)
-                ->byDeviceId($deviceId)
-                ->first()
-            : null;
+    $this->syncFingerprints->execute($lock, $data->candidateFingerprints);
 
-        if ($byDevice) {
-            return [$byDevice, false];
-        }
-
-        $fpMatch = !empty($candidates)
-            ? DeviceFingerprintIndex::with('deviceLock.table')
-                ->forCandidates($event->id, $candidates)
-                ->first()
-            : null;
-
-        if ($fpMatch?->deviceLock) {
-            return [$fpMatch->deviceLock, true];
-        }
-
-        return [null, false];
+    if (!empty($data->hardwareSummary)) {
+      $lock->update(['hardware_summary' => $data->hardwareSummary]);
     }
+
+    return [
+      'lock' => $lock->fresh(['table']),
+      'restoredByFingerprint' => $restoredByFp,
+    ];
+  }
+
+  /** @return array{0: ?DeviceLock, 1: bool} */
+  public function findExistingLock(Event $event, string $deviceId, array $candidates): array
+  {
+    $byDevice = $deviceId !== ''
+      ? DeviceLock::with('table')
+        ->forEvent($event->id)
+        ->byDeviceId($deviceId)
+        ->first()
+      : null;
+
+    if ($byDevice) {
+      return [$byDevice, false];
+    }
+
+    $fpMatch = !empty($candidates)
+      ? DeviceFingerprintIndex::with('deviceLock.table')
+        ->forCandidates($event->id, $candidates)
+        ->first()
+      : null;
+
+    if ($fpMatch?->deviceLock) {
+      return [$fpMatch->deviceLock, true];
+    }
+
+    return [null, false];
+  }
 }

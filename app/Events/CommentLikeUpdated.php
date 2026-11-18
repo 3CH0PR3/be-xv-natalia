@@ -9,24 +9,24 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 class CommentLikeUpdated implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+  use Dispatchable, InteractsWithSockets;
 
-    public function __construct(
-        public readonly string $eventCode,
-        public readonly string $memoryId,
-        public readonly string $commentId,
-        public readonly int $likes,
-        public readonly string $actorKey,
-        public readonly bool $liked,
-    ) {}
+  public function __construct(
+    public readonly string $eventCode,
+    public readonly string $memoryId,
+    public readonly string $commentId,
+    public readonly int $likes,
+    public readonly string $actorKey,
+    public readonly bool $liked,
+  ) {}
 
-    public function broadcastOn(): array
-    {
-        return [new Channel("event.{$this->eventCode}")];
-    }
+  public function broadcastOn(): array
+  {
+    return [new Channel("event.{$this->eventCode}")];
+  }
 
-    public function broadcastAs(): string
-    {
-        return 'comment.liked';
-    }
+  public function broadcastAs(): string
+  {
+    return 'comment.liked';
+  }
 }

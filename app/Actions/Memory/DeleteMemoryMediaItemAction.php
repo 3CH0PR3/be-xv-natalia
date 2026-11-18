@@ -12,51 +12,51 @@ use Illuminate\Support\Facades\DB;
 
 class DeleteMemoryMediaItemAction
 {
-    /** @return array{deletedParent: bool, memory: ?Memory} */
-    public function execute(string $externalId, string $mediaItemId, ViewerContextData $viewer): array
-    {
-        return DB::transaction(function () use ($externalId, $mediaItemId, $viewer): array {
-            $memory = Memory::with(['event', 'mediaItems'])->where('external_id', $externalId)->lockForUpdate()->first();
+  /** @return array{deletedParent: bool, memory: ?Memory} */
+  public function execute(string $externalId, string $mediaItemId, ViewerContextData $viewer): array
+  {
+    return DB::transaction(function () use ($externalId, $mediaItemId, $viewer): array {
+      $memory = Memory::with(['event', 'mediaItems'])->where('external_id', $externalId)->lockForUpdate()->first();
 
-            if (!$memory) {
-                return ['deletedParent' => true, 'memory' => null];
-            }
+      if (!$memory) {
+        return ['deletedParent' => true, 'memory' => null];
+      }
 
-            if (!$viewer->isHost() && !$memory->isOwnedBy($viewer->deviceId, $viewer->actorKey)) {
-                throw new DomainRuleException(
-                    'FORBIDDEN_ALBUM_EDIT',
-                    'No autorizado para editar este álbum.',
-                    403
-                );
-            }
+      if (!$viewer->isHost() && !$memory->isOwnedBy($viewer->deviceId, $viewer->actorKey)) {
+        throw new DomainRuleException(
+          'FORBIDDEN_ALBUM_EDIT',
+          'No autorizado para editar este álbum.',
+          403
+        );
+      }
 
-            $targetItem = $memory->mediaItems->firstWhere('external_id', $mediaItemId);
-            if (!$targetItem) {
-                return ['deletedParent' => false, 'memory' => $memory];
-            }
+      $targetItem = $memory->mediaItems->firstWhere('external_id', $mediaItemId);
+      if (!$targetItem) {
+        return ['deletedParent' => false, 'memory' => $memory];
+      }
 
-            $eventCode = $memory->event->code;
-            $targetItem->delete(); // Observer deletes storage file upon commit
+      $eventCode = $memory->event->code;
+      $targetItem->delete(); // Observer deletes storage file upon commit
 
-            $remaining = $memory->mediaItems()->orderBy('sort_order')->get();
-            if ($remaining->isEmpty()) {
-                $memory->delete();
-                DB::afterCommit(static function () use ($eventCode, $externalId): void {
-                    broadcast(new MemoryDeleted($eventCode, $externalId))->toOthers();
-                });
-
-                return ['deletedParent' => true, 'memory' => null];
-            }
-
-            $memory->update(['media_type' => $remaining->first()->media_type]);
-            $fresh = $memory->fresh(['mediaItems', 'reactions', 'comments.commentLikes']);
-
-            DB::afterCommit(static function () use ($eventCode, $fresh): void {
-                $payload = (new MemoryResource($fresh))->resolve();
-                broadcast(new MemoryUpdated($eventCode, $payload))->toOthers();
-            });
-
-            return ['deletedParent' => false, 'memory' => $fresh];
+      $remaining = $memory->mediaItems()->orderBy('sort_order')->get();
+      if ($remaining->isEmpty()) {
+        $memory->delete();
+        DB::afterCommit(static function () use ($eventCode, $externalId): void {
+          broadcast(new MemoryDeleted($eventCode, $externalId))->toOthers();
         });
-    }
+
+        return ['deletedParent' => true, 'memory' => null];
+      }
+
+      $memory->update(['media_type' => $remaining->first()->media_type]);
+      $fresh = $memory->fresh(['mediaItems', 'reactions', 'comments.commentLikes']);
+
+      DB::afterCommit(static function () use ($eventCode, $fresh): void {
+        $payload = (new MemoryResource($fresh))->resolve();
+        broadcast(new MemoryUpdated($eventCode, $payload))->toOthers();
+      });
+
+      return ['deletedParent' => false, 'memory' => $fresh];
+    });
+  }
 }

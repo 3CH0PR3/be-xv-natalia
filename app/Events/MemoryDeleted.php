@@ -9,20 +9,20 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 class MemoryDeleted implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+  use Dispatchable, InteractsWithSockets;
 
-    public function __construct(
-        public readonly string $eventCode,
-        public readonly string $memoryId,
-    ) {}
+  public function __construct(
+    public readonly string $eventCode,
+    public readonly string $memoryId,
+  ) {}
 
-    public function broadcastOn(): array
-    {
-        return [new Channel("event.{$this->eventCode}")];
-    }
+  public function broadcastOn(): array
+  {
+    return [new Channel("event.{$this->eventCode}")];
+  }
 
-    public function broadcastAs(): string
-    {
-        return 'memory.deleted';
-    }
+  public function broadcastAs(): string
+  {
+    return 'memory.deleted';
+  }
 }

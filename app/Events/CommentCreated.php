@@ -9,22 +9,22 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 class CommentCreated implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+  use Dispatchable, InteractsWithSockets;
 
-    public function __construct(
-        public readonly string $eventCode,
-        public readonly string $memoryId,
-        public readonly array $comment,
-        public readonly int $commentsCount,
-    ) {}
+  public function __construct(
+    public readonly string $eventCode,
+    public readonly string $memoryId,
+    public readonly array $comment,
+    public readonly int $commentsCount,
+  ) {}
 
-    public function broadcastOn(): array
-    {
-        return [new Channel("event.{$this->eventCode}")];
-    }
+  public function broadcastOn(): array
+  {
+    return [new Channel("event.{$this->eventCode}")];
+  }
 
-    public function broadcastAs(): string
-    {
-        return 'comment.created';
-    }
+  public function broadcastAs(): string
+  {
+    return 'comment.created';
+  }
 }

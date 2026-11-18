@@ -14,34 +14,34 @@ use Illuminate\Http\Request;
 
 class TableController extends Controller
 {
-    use ApiResponser;
+  use ApiResponser;
 
-    public function __construct(
-        private readonly DeviceLockService $service,
-    ) {}
+  public function __construct(
+    private readonly DeviceLockService $service,
+  ) {}
 
-    public function index(Request $request): JsonResponse
-    {
-        $viewer = ViewerContextData::fromRequest($request);
-        $tables = $this->service->listTables($viewer->eventCode);
-        return $this->sendResponse(
-            EventTableResource::collection($tables),
-            'Listado de mesas.',
-            200
-        );
-    }
+  public function index(Request $request): JsonResponse
+  {
+    $viewer = ViewerContextData::fromRequest($request);
+    $tables = $this->service->listTables($viewer->eventCode);
+    return $this->sendResponse(
+      EventTableResource::collection($tables),
+      'Listado de mesas.',
+      200
+    );
+  }
 
-    public function generateQrs(Request $request, GenerateTableQrsAction $action): JsonResponse
-    {
-        $viewer = ViewerContextData::fromRequest($request);
-        $event = Event::byCode($viewer->eventCode)->firstOrFail();
-        $baseUrl = $request->input('baseUrl') ?: ($request->header('origin') ?: $request->getSchemeAndHttpHost());
+  public function generateQrs(Request $request, GenerateTableQrsAction $action): JsonResponse
+  {
+    $viewer = ViewerContextData::fromRequest($request);
+    $event = Event::byCode($viewer->eventCode)->firstOrFail();
+    $baseUrl = $request->input('baseUrl') ?: ($request->header('origin') ?: $request->getSchemeAndHttpHost());
 
-        $tables = $action->execute($event, $baseUrl);
-        return $this->sendResponse(
-            EventTableResource::collection($tables),
-            'QRs generados exitosamente.',
-            200
-        );
-    }
+    $tables = $action->execute($event, $baseUrl);
+    return $this->sendResponse(
+      EventTableResource::collection($tables),
+      'QRs generados exitosamente.',
+      200
+    );
+  }
 }

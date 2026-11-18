@@ -15,40 +15,40 @@ use Illuminate\Support\Facades\DB;
 
 class ExpelGuestAction
 {
-    public function execute(Event $event, ExpelGuestData $data): Collection
-    {
-        $table = EventTable::forEvent($event->id)
-            ->matchingIdentifier($data->tableId)
-            ->firstOrFail();
+  public function execute(Event $event, ExpelGuestData $data): Collection
+  {
+    $table = EventTable::forEvent($event->id)
+      ->matchingIdentifier($data->tableId)
+      ->firstOrFail();
 
-        DB::transaction(function () use ($event, $table, $data): void {
-            $lock = DeviceLock::forEvent($event->id)
-                ->where('event_table_id', $table->id)
-                ->matchingGuestIdentity($data->deviceId, $data->hwFingerprint)
-                ->lockForUpdate()
-                ->first();
+    DB::transaction(function () use ($event, $table, $data): void {
+      $lock = DeviceLock::forEvent($event->id)
+        ->where('event_table_id', $table->id)
+        ->matchingGuestIdentity($data->deviceId, $data->hwFingerprint)
+        ->lockForUpdate()
+        ->first();
 
-            if (!$lock) {
-                return;
-            }
+      if (!$lock) {
+        return;
+      }
 
-            $expelledDeviceId = $lock->device_id;
-            $lock->delete();
+      $expelledDeviceId = $lock->device_id;
+      $lock->delete();
 
-            DB::afterCommit(static function () use ($expelledDeviceId, $table): void {
-                broadcast(new GuestExpelled($expelledDeviceId, $table->code));
-            });
-        });
+      DB::afterCommit(static function () use ($expelledDeviceId, $table): void {
+        broadcast(new GuestExpelled($expelledDeviceId, $table->code));
+      });
+    });
 
-        $tables = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
-        try {
-            $payload = EventTableResource::collection($tables)->resolve();
-            ProcessTableOccupancyJob::dispatch($event->id, $payload);
-            broadcast(new TablesUpdated($event->code, $payload));
-        } catch (\Throwable $e) {
-            report($e);
-        }
-
-        return $tables;
+    $tables = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
+    try {
+      $payload = EventTableResource::collection($tables)->resolve();
+      ProcessTableOccupancyJob::dispatch($event->id, $payload);
+      broadcast(new TablesUpdated($event->code, $payload));
+    } catch (\Throwable $e) {
+      report($e);
     }
+
+    return $tables;
+  }
 }

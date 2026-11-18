@@ -13,104 +13,96 @@ use App\Services\MemoryService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class MemoryController extends Controller
 {
-    use ApiResponser;
+  use ApiResponser;
 
-    public function __construct(
-        private readonly MemoryService $service,
-    ) {}
+  public function __construct(
+    private readonly MemoryService $service,
+  ) {}
 
-    public function index(ListMemoriesRequest $request): MemoryCollection
-    {
-        $paginator = $this->service->listMemories(
-            $request->toDto(),
-            ViewerContextData::fromRequest($request)
-        );
+  public function index(ListMemoriesRequest $request): MemoryCollection
+  {
+    $paginator = $this->service->listMemories(
+      $request->toDto(),
+      ViewerContextData::fromRequest($request)
+    );
 
-        return new MemoryCollection($paginator);
+    return new MemoryCollection($paginator);
+  }
+
+  public function show(string $externalId, Request $request): JsonResponse
+  {
+    $memory = $this->service->getMemory($externalId, ViewerContextData::fromRequest($request));
+    return $this->sendResponse(
+      new MemoryResource($memory),
+      'Recuerdo obtenido.',
+      200
+    );
+  }
+
+  public function store(StoreMemoryRequest $request): JsonResponse
+  {
+    $dto = $request->toDto();
+    $memory = $this->service->publishMemory($dto);
+
+    return $this->sendResponse(
+      new MemoryResource($memory),
+      'Recuerdo publicado exitosamente.',
+      Response::HTTP_CREATED
+    );
+  }
+
+  public function updateCaption(string $externalId, UpdateMemoryCaptionRequest $request): JsonResponse
+  {
+    $memory = $this->service->updateCaption(
+      $request->toDto($externalId),
+      ViewerContextData::fromRequest($request)
+    );
+
+    return $this->sendResponse(
+      new MemoryResource($memory),
+      'Descripción actualizada exitosamente.',
+      200
+    );
+  }
+
+  public function destroy(string $externalId, Request $request): JsonResponse
+  {
+    $result = $this->service->deleteMemory($externalId, ViewerContextData::fromRequest($request));
+    return $this->sendResponse($result, 'Recuerdo eliminado correctamente.', 200);
+  }
+
+  public function destroyMediaItem(string $externalId, string $mediaItemId, Request $request): JsonResponse
+  {
+    $result = $this->service->deleteMediaItem(
+      $externalId,
+      $mediaItemId,
+      ViewerContextData::fromRequest($request)
+    );
+
+    if ($result['deletedParent']) {
+      return $this->sendResponse(['deletedParent' => true], 'Elemento y recuerdo vaciado eliminados.', 200);
     }
 
-    public function show(string $externalId, Request $request): JsonResponse
-    {
-        $memory = $this->service->getMemory($externalId, ViewerContextData::fromRequest($request));
-        return $this->sendResponse(
-            new MemoryResource($memory),
-            'Recuerdo obtenido.',
-            200
-        );
-    }
+    return $this->sendResponse(
+      new MemoryResource($result['memory']),
+      'Elemento multimedia eliminado.',
+      200
+    );
+  }
 
-    public function store(StoreMemoryRequest $request): JsonResponse
-    {
-        $dto = $request->toDto();
-        $filesCount = count($dto->files);
-        Log::info("MemoryController@store: Creating memory for guest='{$dto->guestName}' table='{$dto->tableCode}' files={$filesCount}");
+  public function incrementShare(string $externalId): JsonResponse
+  {
+    $memory = $this->service->incrementShare($externalId);
 
-        $memory = $this->service->publishMemory($dto);
-
-        Log::info("MemoryController@store: Memory created successfully ID={$memory->id} externalId={$memory->external_id}");
-
-        return $this->sendResponse(
-            new MemoryResource($memory),
-            'Recuerdo publicado exitosamente.',
-            Response::HTTP_CREATED
-        );
-    }
-
-    public function updateCaption(string $externalId, UpdateMemoryCaptionRequest $request): JsonResponse
-    {
-        $memory = $this->service->updateCaption(
-            $request->toDto($externalId),
-            ViewerContextData::fromRequest($request)
-        );
-
-        return $this->sendResponse(
-            new MemoryResource($memory),
-            'Descripción actualizada exitosamente.',
-            200
-        );
-    }
-
-    public function destroy(string $externalId, Request $request): JsonResponse
-    {
-        Log::info("MemoryController@destroy: externalId={$externalId}, hostPin={$request->header('X-Host-Pin')}, deviceId={$request->header('X-Device-Id')}");
-        $result = $this->service->deleteMemory($externalId, ViewerContextData::fromRequest($request));
-        return $this->sendResponse($result, 'Recuerdo eliminado correctamente.', 200);
-    }
-
-    public function destroyMediaItem(string $externalId, string $mediaItemId, Request $request): JsonResponse
-    {
-        Log::info("MemoryController@destroyMediaItem: externalId={$externalId}, mediaItemId={$mediaItemId}, hostPin={$request->header('X-Host-Pin')}");
-        $result = $this->service->deleteMediaItem(
-            $externalId,
-            $mediaItemId,
-            ViewerContextData::fromRequest($request)
-        );
-
-        if ($result['deletedParent']) {
-            return $this->sendResponse(['deletedParent' => true], 'Elemento y recuerdo vaciado eliminados.', 200);
-        }
-
-        return $this->sendResponse(
-            new MemoryResource($result['memory']),
-            'Elemento multimedia eliminado.',
-            200
-        );
-    }
-
-    public function incrementShare(string $externalId): JsonResponse
-    {
-        $memory = $this->service->incrementShare($externalId);
-
-        return $this->sendResponse([
-            'id' => $memory->external_id,
-            'externalId' => $memory->external_id,
-            'shares' => $memory->shares_count,
-            'sharesCount' => $memory->shares_count,
-        ], 'Contador de compartidos incrementado.', 200);
-    }
+    return $this->sendResponse([
+      'id' => $memory->external_id,
+      'externalId' => $memory->external_id,
+      'shares' => $memory->shares_count,
+      'sharesCount' => $memory->shares_count,
+    ], 'Contador de compartidos incrementado.', 200);
+  }
 }

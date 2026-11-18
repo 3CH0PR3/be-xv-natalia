@@ -11,19 +11,19 @@ use Illuminate\Http\JsonResponse;
 
 class TableGuestController extends Controller
 {
-    use ApiResponser;
+  use ApiResponser;
 
-    public function __construct(
-        private readonly ModerationService $service,
-    ) {}
+  public function __construct(
+    private readonly ModerationService $service,
+  ) {}
 
-    public function expel(ExpelGuestRequest $request): JsonResponse
-    {
-        $tables = $this->service->expelGuest($request->toDto());
-        return $this->sendResponse(
-            EventTableResource::collection($tables),
-            'Invitado expulsado exitosamente.',
-            200
-        );
-    }
+  public function expel(ExpelGuestRequest $request): JsonResponse
+  {
+    $tables = $this->service->expelGuest($request->toDto());
+    return $this->sendResponse(
+      EventTableResource::collection($tables),
+      'Invitado expulsado exitosamente.',
+      200
+    );
+  }
 }

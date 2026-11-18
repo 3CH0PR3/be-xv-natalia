@@ -19,64 +19,64 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class MemoryService
 {
-    public function __construct(
-        private readonly CreateMemoryAction $createMemory,
-        private readonly UpdateMemoryCaptionAction $updateCaption,
-        private readonly DeleteMemoryAction $deleteMemory,
-        private readonly DeleteMemoryMediaItemAction $deleteMediaItem,
-        private readonly ToggleMemoryReactionAction $toggleReaction,
-        private readonly IncrementMemoryShareAction $incrementShare,
-    ) {}
+  public function __construct(
+    private readonly CreateMemoryAction $createMemory,
+    private readonly UpdateMemoryCaptionAction $updateCaption,
+    private readonly DeleteMemoryAction $deleteMemory,
+    private readonly DeleteMemoryMediaItemAction $deleteMediaItem,
+    private readonly ToggleMemoryReactionAction $toggleReaction,
+    private readonly IncrementMemoryShareAction $incrementShare,
+  ) {}
 
-    public function listMemories(MemoryFilterData $filter, ViewerContextData $viewer): LengthAwarePaginator
-    {
-        $event = Event::byCode($filter->eventCode)->firstOrFail();
+  public function listMemories(MemoryFilterData $filter, ViewerContextData $viewer): LengthAwarePaginator
+  {
+    $event = Event::byCode($filter->eventCode)->firstOrFail();
 
-        return Memory::forEvent($event->id)
-            ->withWallRelations($viewer->actorKey, $viewer->deviceId)
-            ->filterStatus($filter->status, $filter->includeAllStatuses)
-            ->when($filter->ownerDeviceId, fn ($q) => $q->ownedBy($filter->ownerDeviceId))
-            ->filterCategory($filter->category)
-            ->search($filter->search)
-            ->newestFirst()
-            ->paginate($filter->perPage);
-    }
+    return Memory::forEvent($event->id)
+      ->withWallRelations($viewer->actorKey, $viewer->deviceId)
+      ->filterStatus($filter->status, $filter->includeAllStatuses)
+      ->when($filter->ownerDeviceId, fn ($q) => $q->ownedBy($filter->ownerDeviceId))
+      ->filterCategory($filter->category)
+      ->search($filter->search)
+      ->newestFirst()
+      ->paginate($filter->perPage);
+  }
 
-    public function getMemory(string $externalId, ViewerContextData $viewer): Memory
-    {
-        return Memory::withWallRelations($viewer->actorKey, $viewer->deviceId)
-            ->where('external_id', $externalId)
-            ->firstOrFail();
-    }
+  public function getMemory(string $externalId, ViewerContextData $viewer): Memory
+  {
+    return Memory::withWallRelations($viewer->actorKey, $viewer->deviceId)
+      ->where('external_id', $externalId)
+      ->firstOrFail();
+  }
 
-    public function publishMemory(CreateMemoryData $data): Memory
-    {
-        $event = Event::byCode($data->eventCode)->firstOrFail();
-        return $this->createMemory->execute($event, $data);
-    }
+  public function publishMemory(CreateMemoryData $data): Memory
+  {
+    $event = Event::byCode($data->eventCode)->firstOrFail();
+    return $this->createMemory->execute($event, $data);
+  }
 
-    public function updateCaption(UpdateCaptionData $data, ViewerContextData $viewer): Memory
-    {
-        return $this->updateCaption->execute($data, $viewer);
-    }
+  public function updateCaption(UpdateCaptionData $data, ViewerContextData $viewer): Memory
+  {
+    return $this->updateCaption->execute($data, $viewer);
+  }
 
-    public function deleteMemory(string $externalId, ViewerContextData $viewer): array
-    {
-        return $this->deleteMemory->execute($externalId, $viewer);
-    }
+  public function deleteMemory(string $externalId, ViewerContextData $viewer): array
+  {
+    return $this->deleteMemory->execute($externalId, $viewer);
+  }
 
-    public function deleteMediaItem(string $externalId, string $mediaItemId, ViewerContextData $viewer): array
-    {
-        return $this->deleteMediaItem->execute($externalId, $mediaItemId, $viewer);
-    }
+  public function deleteMediaItem(string $externalId, string $mediaItemId, ViewerContextData $viewer): array
+  {
+    return $this->deleteMediaItem->execute($externalId, $mediaItemId, $viewer);
+  }
 
-    public function toggleReaction(ToggleReactionData $data): array
-    {
-        return $this->toggleReaction->execute($data);
-    }
+  public function toggleReaction(ToggleReactionData $data): array
+  {
+    return $this->toggleReaction->execute($data);
+  }
 
-    public function incrementShare(string $externalId): Memory
-    {
-        return $this->incrementShare->execute($externalId);
-    }
+  public function incrementShare(string $externalId): Memory
+  {
+    return $this->incrementShare->execute($externalId);
+  }
 }

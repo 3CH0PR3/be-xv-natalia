@@ -9,20 +9,20 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 class PartyCelebrated implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+  use Dispatchable, InteractsWithSockets;
 
-    public function __construct(
-        public readonly string $eventCode,
-        public readonly int $count,
-    ) {}
+  public function __construct(
+    public readonly string $eventCode,
+    public readonly int $count,
+  ) {}
 
-    public function broadcastOn(): array
-    {
-        return [new Channel("event.{$this->eventCode}")];
-    }
+  public function broadcastOn(): array
+  {
+    return [new Channel("event.{$this->eventCode}")];
+  }
 
-    public function broadcastAs(): string
-    {
-        return 'party.celebrated';
-    }
+  public function broadcastAs(): string
+  {
+    return 'party.celebrated';
+  }
 }

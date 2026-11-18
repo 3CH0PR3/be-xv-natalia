@@ -12,31 +12,31 @@ use Illuminate\Support\Facades\DB;
 
 class UpdateMemoryCaptionAction
 {
-    public function execute(UpdateCaptionData $data, ViewerContextData $viewer): Memory
-    {
-        return DB::transaction(function () use ($data, $viewer): Memory {
-            $memory = Memory::with('event')
-                ->where('external_id', $data->externalId)
-                ->lockForUpdate()
-                ->firstOrFail();
+  public function execute(UpdateCaptionData $data, ViewerContextData $viewer): Memory
+  {
+    return DB::transaction(function () use ($data, $viewer): Memory {
+      $memory = Memory::with('event')
+        ->where('external_id', $data->externalId)
+        ->lockForUpdate()
+        ->firstOrFail();
 
-            if (!$viewer->isHost() && !$memory->isOwnedBy($viewer->deviceId, $viewer->actorKey)) {
-                throw new DomainRuleException(
-                    'FORBIDDEN_CAPTION_EDIT',
-                    'Solo el autor original puede editar la dedicatoria de este recuerdo.',
-                    403
-                );
-            }
+      if (!$viewer->isHost() && !$memory->isOwnedBy($viewer->deviceId, $viewer->actorKey)) {
+        throw new DomainRuleException(
+          'FORBIDDEN_CAPTION_EDIT',
+          'Solo el autor original puede editar la dedicatoria de este recuerdo.',
+          403
+        );
+      }
 
-            $memory->update(['caption' => $data->caption]);
-            $fresh = $memory->fresh(['mediaItems', 'reactions', 'comments.commentLikes']);
+      $memory->update(['caption' => $data->caption]);
+      $fresh = $memory->fresh(['mediaItems', 'reactions', 'comments.commentLikes']);
 
-            DB::afterCommit(static function () use ($memory, $fresh): void {
-                $payload = (new MemoryResource($fresh))->resolve();
-                broadcast(new MemoryUpdated($memory->event->code, $payload))->toOthers();
-            });
+      DB::afterCommit(static function () use ($memory, $fresh): void {
+        $payload = (new MemoryResource($fresh))->resolve();
+        broadcast(new MemoryUpdated($memory->event->code, $payload))->toOthers();
+      });
 
-            return $fresh;
-        });
-    }
+      return $fresh;
+    });
+  }
 }

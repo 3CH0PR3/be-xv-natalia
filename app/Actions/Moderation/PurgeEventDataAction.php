@@ -20,53 +20,53 @@ use Illuminate\Support\Facades\Storage;
  */
 class PurgeEventDataAction
 {
-    public function execute(Event $event): array
-    {
-        $filesByDisk = Memory::forEvent($event->id)
-            ->with('mediaItems')
-            ->get()
-            ->flatMap->mediaItems
-            ->groupBy(static fn ($item) => $item->disk ?: config('xv.media_disk', 'public'))
-            ->map(static fn ($items) => $items->flatMap->storedPaths()->filter()->values()->all())
-            ->all();
+  public function execute(Event $event): array
+  {
+    $filesByDisk = Memory::forEvent($event->id)
+      ->with('mediaItems')
+      ->get()
+      ->flatMap->mediaItems
+      ->groupBy(static fn ($item) => $item->disk ?: config('xv.media_disk', 'public'))
+      ->map(static fn ($items) => $items->flatMap->storedPaths()->filter()->values()->all())
+      ->all();
 
-        return DB::transaction(function () use ($event, $filesByDisk): array {
-            $lockedEvent = Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+    return DB::transaction(function () use ($event, $filesByDisk): array {
+      $lockedEvent = Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
 
-            Memory::forEvent($lockedEvent->id)->delete();
-            DeviceLock::forEvent($lockedEvent->id)->delete();
-            PartyReaction::where('event_id', $lockedEvent->id)->delete();
+      Memory::forEvent($lockedEvent->id)->delete();
+      DeviceLock::forEvent($lockedEvent->id)->delete();
+      PartyReaction::where('event_id', $lockedEvent->id)->delete();
 
-            $nextEpoch = $lockedEvent->epoch + 1;
-            $nextScope = config('xv.db_scope_prefix', 'laravel') . "-{$nextEpoch}";
+      $nextEpoch = $lockedEvent->epoch + 1;
+      $nextScope = config('xv.db_scope_prefix', 'laravel') . "-{$nextEpoch}";
 
-            $lockedEvent->update([
-                'party_celebrations_count' => 0,
-                'epoch' => $nextEpoch,
-                'db_scope' => $nextScope,
-            ]);
+      $lockedEvent->update([
+        'party_celebrations_count' => 0,
+        'epoch' => $nextEpoch,
+        'db_scope' => $nextScope,
+      ]);
 
-            DB::afterCommit(static function () use ($lockedEvent, $nextScope, $nextEpoch, $filesByDisk): void {
-                foreach ($filesByDisk as $diskName => $paths) {
-                    if (empty($paths)) {
-                        continue;
-                    }
-                    Storage::disk($diskName)->delete($paths);
-                }
+      DB::afterCommit(static function () use ($lockedEvent, $nextScope, $nextEpoch, $filesByDisk): void {
+        foreach ($filesByDisk as $diskName => $paths) {
+          if (empty($paths)) {
+            continue;
+          }
+          Storage::disk($diskName)->delete($paths);
+        }
 
-                $tables = EventTable::with('deviceLocks')->forEvent($lockedEvent->id)->ordered()->get();
-                $payload = EventTableResource::collection($tables)->resolve();
-                ProcessTableOccupancyJob::dispatch($lockedEvent->id, $payload);
-                broadcast(new TablesUpdated($lockedEvent->code, $payload));
-                broadcast(new EventDataPurged($lockedEvent->code, $nextScope, $nextEpoch));
-            });
+        $tables = EventTable::with('deviceLocks')->forEvent($lockedEvent->id)->ordered()->get();
+        $payload = EventTableResource::collection($tables)->resolve();
+        ProcessTableOccupancyJob::dispatch($lockedEvent->id, $payload);
+        broadcast(new TablesUpdated($lockedEvent->code, $payload));
+        broadcast(new EventDataPurged($lockedEvent->code, $nextScope, $nextEpoch));
+      });
 
-            return [
-                'eventCode' => $lockedEvent->code,
-                'dbScope' => $nextScope,
-                'epoch' => $nextEpoch,
-                'purged' => true,
-            ];
-        });
-    }
+      return [
+        'eventCode' => $lockedEvent->code,
+        'dbScope' => $nextScope,
+        'epoch' => $nextEpoch,
+        'purged' => true,
+      ];
+    });
+  }
 }

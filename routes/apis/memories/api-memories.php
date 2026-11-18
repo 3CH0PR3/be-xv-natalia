@@ -8,18 +8,18 @@ use Illuminate\Support\Facades\Route;
 Route::get('/memories', [MemoryController::class, 'index']);
 Route::get('/memories/{externalId}', [MemoryController::class, 'show']);
 Route::post('/memories', [MemoryController::class, 'store'])
-    ->middleware(['device.lock', 'throttle:api.memories.store']);
+  ->middleware(['device.lock', 'throttle:api.memories.store']);
 Route::patch('/memories/{externalId}/caption', [MemoryController::class, 'updateCaption'])
-    ->middleware(['device.lock', 'throttle:api.memories.interactions']);
+  ->middleware(['device.lock', 'throttle:api.memories.interactions']);
 Route::delete('/memories/{externalId}', [MemoryController::class, 'destroy'])
-    ->middleware('device.lock');
+  ->middleware('device.lock');
 Route::delete('/memories/{externalId}/media/{mediaItemId}', [MemoryController::class, 'destroyMediaItem'])
-    ->middleware('device.lock');
+  ->middleware('device.lock');
 
 // Reacciones y compartidos en recuerdos
 Route::post('/memories/{externalId}/reactions/toggle', [MemoryReactionController::class, 'toggle'])
-    ->middleware(['device.lock', 'throttle:api.memories.interactions']);
+  ->middleware(['device.lock', 'throttle:api.memories.interactions']);
 Route::post('/memories/{externalId}/shares', [MemoryReactionController::class, 'share'])
-    ->middleware(['device.lock', 'throttle:api.memories.interactions']);
+  ->middleware(['device.lock', 'throttle:api.memories.interactions']);
 Route::post('/memories/{externalId}/share', [MemoryController::class, 'incrementShare'])
-    ->middleware(['device.lock', 'throttle:api.memories.interactions']);
+  ->middleware(['device.lock', 'throttle:api.memories.interactions']);

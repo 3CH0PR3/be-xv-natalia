@@ -16,38 +16,42 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessMemoryJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, InvalidatesCache;
+  use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, InvalidatesCache;
 
-    public int $tries = 3;
-    public int $timeout = 60;
+  public int $tries = 3;
+  public int $timeout = 60;
 
-    public function __construct(
-        public int $memoryId
-    ) {
-        $this->queue = 'default';
+  public function __construct(
+    public int $memoryId
+  ) {
+    $this->queue = 'default';
+  }
+
+  public function handle(): void
+  {
+    $memory = Memory::with(['event', 'mediaItems', 'reactions', 'comments.commentLikes'])->find($this->memoryId);
+    if (!$memory) {
+      return;
     }
 
-    public function handle(): void
-    {
-        $memory = Memory::with(['event', 'mediaItems', 'reactions', 'comments.commentLikes'])->find($this->memoryId);
-        if (!$memory) {
-            return;
-        }
+    $event = $memory->event;
+    $eventCode = $event?->code ?? (string) config('xv.default_event_code', 'XV-NATALIA');
 
-        $event = $memory->event;
-        $eventCode = $event?->code ?? (string) config('xv.default_event_code', 'XV-NATALIA');
-
-        foreach ($memory->mediaItems as $mediaItem) {
-            ProcessMediaOptimizationJob::dispatch($mediaItem->id);
-        }
-
-        Cache::store('redis')->forget("memory:{$memory->external_id}");
-        $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
-
-        $payload = (new MemoryResource($memory))->resolve();
-        broadcast(new MemoryCreated($eventCode, $payload));
-
-        $mediaCount = $memory->mediaItems->count();
-        Log::info("ProcessMemoryJob: Broadcasted Memory #{$memory->id} ({$memory->external_id}) with {$mediaCount} media items for event {$eventCode}");
+    foreach ($memory->mediaItems as $mediaItem) {
+      ProcessMediaOptimizationJob::dispatch($mediaItem->id);
     }
+
+    Cache::store('redis')->forget("memory:{$memory->external_id}");
+    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+
+    $payload = (new MemoryResource($memory))->resolve();
+    broadcast(new MemoryCreated($eventCode, $payload));
+  }
+
+  public function failed(\Throwable $exception): void
+  {
+    Log::error("ProcessMemoryJob failed for memory #{$this->memoryId}: " . $exception->getMessage(), [
+      'exception' => $exception,
+    ]);
+  }
 }

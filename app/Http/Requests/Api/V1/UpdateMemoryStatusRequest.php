@@ -7,15 +7,15 @@ use Illuminate\Validation\Rule;
 
 class UpdateMemoryStatusRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
+  public function authorize(): bool
+  {
+    return true;
+  }
 
-    public function rules(): array
-    {
-        return [
-            'status' => ['required', Rule::in(['approved', 'pending', 'rejected', 'hidden'])],
-        ];
-    }
+  public function rules(): array
+  {
+    return [
+      'status' => ['required', Rule::in(['approved', 'pending', 'rejected', 'hidden'])],
+    ];
+  }
 }

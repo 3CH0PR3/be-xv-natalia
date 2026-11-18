@@ -17,44 +17,44 @@ use Illuminate\Support\Facades\Cache;
 
 class CommentService
 {
-    public function __construct(
-        private readonly CreateCommentAction $createComment,
-        private readonly UpdateCommentTextAction $updateComment,
-        private readonly DeleteCommentAction $deleteComment,
-        private readonly ToggleCommentLikeAction $toggleLike,
-    ) {}
+  public function __construct(
+    private readonly CreateCommentAction $createComment,
+    private readonly UpdateCommentTextAction $updateComment,
+    private readonly DeleteCommentAction $deleteComment,
+    private readonly ToggleCommentLikeAction $toggleLike,
+  ) {}
 
-    public function listComments(string $memoryExternalId): Collection
-    {
-        $memory = Memory::where('external_id', $memoryExternalId)->firstOrFail();
+  public function listComments(string $memoryExternalId): Collection
+  {
+    $memory = Memory::where('external_id', $memoryExternalId)->firstOrFail();
 
-        return Cache::store('redis')->remember(
-            "memory:comments:{$memory->id}",
-            120,
-            fn () => $memory->comments()
-                ->with('commentLikes')
-                ->ordered()
-                ->get()
-        );
-    }
+    return Cache::store('redis')->remember(
+      "memory:comments:{$memory->id}",
+      120,
+      fn () => $memory->comments()
+        ->with('commentLikes')
+        ->ordered()
+        ->get()
+    );
+  }
 
-    public function addComment(CreateCommentData $data): MemoryComment
-    {
-        return $this->createComment->execute($data);
-    }
+  public function addComment(CreateCommentData $data): MemoryComment
+  {
+    return $this->createComment->execute($data);
+  }
 
-    public function updateComment(UpdateCommentData $data, ViewerContextData $viewer): MemoryComment
-    {
-        return $this->updateComment->execute($data, $viewer);
-    }
+  public function updateComment(UpdateCommentData $data, ViewerContextData $viewer): MemoryComment
+  {
+    return $this->updateComment->execute($data, $viewer);
+  }
 
-    public function deleteComment(string $memoryExternalId, string $commentExternalId, ViewerContextData $viewer): array
-    {
-        return $this->deleteComment->execute($memoryExternalId, $commentExternalId, $viewer);
-    }
+  public function deleteComment(string $memoryExternalId, string $commentExternalId, ViewerContextData $viewer): array
+  {
+    return $this->deleteComment->execute($memoryExternalId, $commentExternalId, $viewer);
+  }
 
-    public function toggleLike(ToggleCommentLikeData $data): array
-    {
-        return $this->toggleLike->execute($data);
-    }
+  public function toggleLike(ToggleCommentLikeData $data): array
+  {
+    return $this->toggleLike->execute($data);
+  }
 }

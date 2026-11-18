@@ -16,61 +16,61 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MemoryCommentController extends Controller
 {
-    use ApiResponser;
+  use ApiResponser;
 
-    public function __construct(
-        private readonly CommentService $service,
-    ) {}
+  public function __construct(
+    private readonly CommentService $service,
+  ) {}
 
-    public function index(string $externalId): JsonResponse
-    {
-        $comments = $this->service->listComments($externalId);
-        return $this->sendResponse(
-            MemoryCommentResource::collection($comments),
-            'Comentarios obtenidos.',
-            200
-        );
-    }
+  public function index(string $externalId): JsonResponse
+  {
+    $comments = $this->service->listComments($externalId);
+    return $this->sendResponse(
+      MemoryCommentResource::collection($comments),
+      'Comentarios obtenidos.',
+      200
+    );
+  }
 
-    public function store(string $externalId, StoreCommentRequest $request): JsonResponse
-    {
-        $comment = $this->service->addComment($request->toDto($externalId));
+  public function store(string $externalId, StoreCommentRequest $request): JsonResponse
+  {
+    $comment = $this->service->addComment($request->toDto($externalId));
 
-        return $this->sendResponse(
-            new MemoryCommentResource($comment),
-            'Comentario creado exitosamente.',
-            Response::HTTP_CREATED
-        );
-    }
+    return $this->sendResponse(
+      new MemoryCommentResource($comment),
+      'Comentario creado exitosamente.',
+      Response::HTTP_CREATED
+    );
+  }
 
-    public function update(string $externalId, string $commentExternalId, UpdateCommentRequest $request): JsonResponse
-    {
-        $comment = $this->service->updateComment(
-            $request->toDto($externalId, $commentExternalId),
-            ViewerContextData::fromRequest($request)
-        );
+  public function update(string $externalId, string $commentExternalId, UpdateCommentRequest $request): JsonResponse
+  {
+    $comment = $this->service->updateComment(
+      $request->toDto($externalId, $commentExternalId),
+      ViewerContextData::fromRequest($request)
+    );
 
-        return $this->sendResponse(
-            new MemoryCommentResource($comment),
-            'Comentario actualizado exitosamente.',
-            200
-        );
-    }
+    return $this->sendResponse(
+      new MemoryCommentResource($comment),
+      'Comentario actualizado exitosamente.',
+      200
+    );
+  }
 
-    public function destroy(string $externalId, string $commentExternalId, Request $request): JsonResponse
-    {
-        $result = $this->service->deleteComment(
-            $externalId,
-            $commentExternalId,
-            ViewerContextData::fromRequest($request)
-        );
+  public function destroy(string $externalId, string $commentExternalId, Request $request): JsonResponse
+  {
+    $result = $this->service->deleteComment(
+      $externalId,
+      $commentExternalId,
+      ViewerContextData::fromRequest($request)
+    );
 
-        return $this->sendResponse($result, 'Comentario eliminado.', 200);
-    }
+    return $this->sendResponse($result, 'Comentario eliminado.', 200);
+  }
 
-    public function toggleLike(string $externalId, string $commentExternalId, ToggleCommentLikeRequest $request): JsonResponse
-    {
-        $result = $this->service->toggleLike($request->toDto($externalId, $commentExternalId));
-        return $this->sendResponse($result, 'Like de comentario actualizado.', 200);
-    }
+  public function toggleLike(string $externalId, string $commentExternalId, ToggleCommentLikeRequest $request): JsonResponse
+  {
+    $result = $this->service->toggleLike($request->toDto($externalId, $commentExternalId));
+    return $this->sendResponse($result, 'Like de comentario actualizado.', 200);
+  }
 }

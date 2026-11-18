@@ -7,14 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PartyReaction extends Model
 {
-    protected $fillable = [
-        'event_id',
-        'actor_key',
-        'device_id',
-    ];
+  protected $fillable = [
+    'event_id',
+    'actor_key',
+    'device_id',
+  ];
 
-    public function event(): BelongsTo
-    {
-        return $this->belongsTo(Event::class);
-    }
+  public function event(): BelongsTo
+  {
+    return $this->belongsTo(Event::class);
+  }
 }
