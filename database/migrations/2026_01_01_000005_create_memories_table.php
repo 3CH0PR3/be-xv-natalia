@@ -24,6 +24,7 @@ return new class extends Migration {
             $table->unsignedInteger('fires_count')->default(0);
             $table->unsignedInteger('cheers_count')->default(0);
             $table->unsignedInteger('comments_count')->default(0);
+            $table->unsignedInteger('shares_count')->default(0);
             $table->unsignedBigInteger('timestamp_ms');
             $table->timestamps();
 

@@ -16,6 +16,10 @@ return new class extends Migration {
             $table->string('zone', 120)->nullable();
             $table->string('centerpiece', 160)->nullable();
             $table->unsignedTinyInteger('capacity')->default(10);
+            $table->string('qr_image_path', 255)->nullable();
+            $table->string('qr_svg_path', 255)->nullable();
+            $table->string('access_url', 500)->nullable();
+            $table->timestamp('qr_generated_at')->nullable();
             $table->timestamps();
 
             $table->unique(['event_id', 'slug'], 'uq_event_tables_event_slug');

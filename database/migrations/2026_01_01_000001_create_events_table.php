@@ -15,6 +15,8 @@ return new class extends Migration {
             $table->string('venue', 255)->nullable();
             $table->timestamp('starts_at')->nullable();
             $table->unsignedInteger('party_celebrations_count')->default(0);
+            $table->string('db_scope', 64)->default('laravel-v1');
+            $table->unsignedBigInteger('epoch')->default(1);
             $table->timestamps();
         });
     }
