@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Códigos QR - XV Natalia Isabella</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; padding: 30px; }
+    h1 { text-align: center; font-size: 28px; color: #f472b6; margin-bottom: 8px; }
+    p.sub { text-align: center; font-size: 14px; color: #94a3b8; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .card h2 { font-size: 20px; color: #fb7185; margin-bottom: 6px; }
+    .card .zone { font-size: 12px; color: #cbd5e1; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .qr-box { background: white; padding: 16px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .qr-box img { width: 220px; height: 220px; display: block; }
+    .card .hint { font-size: 13px; color: #94a3b8; margin-top: 14px; }
+    .card .url { font-family: monospace; font-size: 11px; color: #64748b; margin-top: 6px; }
+    @media print {
+      body { background: white; color: black; padding: 0; }
+      .grid { display: block; }
+      .card { page-break-inside: avoid; border: 1px solid #ccc; box-shadow: none; margin-bottom: 20px; }
+      .card h2 { color: #831843; }
+      .card .zone { color: #555; }
+    }
+  </style>
+</head>
+<body>
+  <h1>XV Natalia Isabella · Gala de 15 Años</h1>
+  <p class="sub">Códigos QR oficiales de mesas para escaneo de invitados e interacción en el Muro en Vivo</p>
+  <div class="grid">
+    
+      <div class="card">
+        <h2>Mesa 01 · Principal</h2>
+        <div class="zone">Tarima de Honor · Frente a Pista · Rosas Blancas</div>
+        <div class="qr-box">
+          <img src="./mesa-01.png" alt="Mesa 01 · Principal" />
+        </div>
+        <p class="hint">Escanea con tu cámara para compartir tus fotos y recuerdos en pantalla</p>
+        <div class="url">http://localhost:3000/?mesa=mesa-01</div>
+      </div>
+    
+      <div class="card">
+        <h2>Mesa 02 · Orquídea</h2>
+        <div class="zone">Ala Norte · Jardín Interior · Orquídeas Imperiales</div>
+        <div class="qr-box">
+          <img src="./mesa-02.png" alt="Mesa 02 · Orquídea" />
+        </div>
+        <p class="hint">Escanea con tu cámara para compartir tus fotos y recuerdos en pantalla</p>
+        <div class="url">http://localhost:3000/?mesa=mesa-02</div>
+      </div>
+    
+      <div class="card">
+        <h2>Mesa 03 · Magnolia</h2>
+        <div class="zone">Ala Norte · Jardín Interior · Magnolias Silvestres</div>
+        <div class="qr-box">
+          <img src="./mesa-03.png" alt="Mesa 03 · Magnolia" />
+        </div>
+        <p class="hint">Escanea con tu cámara para compartir tus fotos y recuerdos en pantalla</p>
+        <div class="url">http://localhost:3000/?mesa=mesa-03</div>
+      </div>
+    
+      <div class="card">
+        <h2>Mesa 04 · Esmeralda</h2>
+        <div class="zone">Sector Central · Pista de Vals · Follaje Esmeralda</div>
+        <div class="qr-box">
+          <img src="./mesa-04.png" alt="Mesa 04 · Esmeralda" />
+        </div>
+        <p class="hint">Escanea con tu cámara para compartir tus fotos y recuerdos en pantalla</p>
+        <div class="url">http://localhost:3000/?mesa=mesa-04</div>
+      </div>
+    
+      <div class="card">
+        <h2>Mesa 05 · Laurel</h2>
+        <div class="zone">Sector Central · Pista de Vals · Ramas de Laurel</div>
+        <div class="qr-box">
+          <img src="./mesa-05.png" alt="Mesa 05 · Laurel" />
+        </div>
+        <p class="hint">Escanea con tu cámara para compartir tus fotos y recuerdos en pantalla</p>
+        <div class="url">http://localhost:3000/?mesa=mesa-05</div>
+      </div>
+    
+      <div class="card">
+        <h2>Mesa 06 · Jazmín</h2>
+        <div class="zone">Terraza Cubierta · Lounge · Jazmines Aromáticos</div>
+        <div class="qr-box">
+          <img src="./mesa-06.png" alt="Mesa 06 · Jazmín" />
+        </div>
+        <p class="hint">Escanea con tu cámara para compartir tus fotos y recuerdos en pantalla</p>
+        <div class="url">http://localhost:3000/?mesa=mesa-06</div>
+      </div>
+    
+  </div>
+</body>
+</html>
