@@ -75,8 +75,12 @@ class MemoryService
     return $this->toggleReaction->execute($data);
   }
 
-  public function incrementShare(string $externalId): Memory
-  {
-    return $this->incrementShare->execute($externalId);
+  public function incrementShare(
+    string $externalId,
+    ?string $actorKey = null,
+    ?string $deviceId = null,
+    ?int $deviceLockId = null
+  ): Memory {
+    return $this->incrementShare->execute($externalId, $actorKey, $deviceId, $deviceLockId);
   }
 }

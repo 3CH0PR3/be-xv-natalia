@@ -143,6 +143,11 @@ class MemoryAndFeedTest extends TestCase
       'shares_count' => 2,
     ]);
 
+    $this->assertDatabaseCount('memory_shares', 2);
+    $memModel = \App\Models\Memory::where('external_id', $externalId)->first();
+    $this->assertCount(2, $memModel->shares);
+    $this->assertEquals('dev-react-1', $memModel->shares->first()->device_id);
+
     // Test delete memory by owner
     $delRes = $this->withHeaders([
       'X-Device-Id' => 'dev-valeria-1',

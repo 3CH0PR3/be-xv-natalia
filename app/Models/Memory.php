@@ -85,6 +85,11 @@ class Memory extends Model
     return $this->hasMany(MemoryComment::class)->orderBy('created_at_ms');
   }
 
+  public function shares(): HasMany
+  {
+    return $this->hasMany(MemoryShare::class);
+  }
+
   // --- Query Scopes ---
 
   public function scopeForEvent(Builder $query, int $eventId): Builder

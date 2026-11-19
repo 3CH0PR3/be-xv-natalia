@@ -60,6 +60,11 @@ class DeviceLock extends Model
     return $this->hasMany(MemoryComment::class);
   }
 
+  public function shares(): HasMany
+  {
+    return $this->hasMany(MemoryShare::class);
+  }
+
   public function scopeForEvent(Builder $query, int $eventId): Builder
   {
     return $query->where('event_id', $eventId);

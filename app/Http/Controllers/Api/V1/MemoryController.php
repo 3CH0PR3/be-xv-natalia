@@ -94,9 +94,13 @@ class MemoryController extends Controller
     );
   }
 
-  public function incrementShare(string $externalId): JsonResponse
+  public function incrementShare(string $externalId, Request $request): JsonResponse
   {
-    $memory = $this->service->incrementShare($externalId);
+    $actorKey = trim((string) ($request->header('X-Actor-Key') ?: $request->input('actorKey', '')));
+    $deviceId = trim((string) ($request->header('X-Device-Id') ?: $request->input('deviceId', '')));
+    $deviceLockId = $request->input('deviceLockId') ? (int) $request->input('deviceLockId') : null;
+
+    $memory = $this->service->incrementShare($externalId, $actorKey, $deviceId, $deviceLockId);
 
     return $this->sendResponse([
       'id' => $memory->external_id,
