@@ -9,17 +9,7 @@ return [
 
   'allowed_origins_patterns' => [],
 
-  'allowed_headers' => [
-    'Content-Type',
-    'X-Requested-With',
-    'Authorization',
-    'Accept',
-    'Origin',
-    'X-Device-Id',
-    'X-Actor-Key',
-    'X-Host-Pin',
-    'X-Socket-ID',
-  ],
+  'allowed_headers' => ['*'],
 
   'exposed_headers' => [],
 
