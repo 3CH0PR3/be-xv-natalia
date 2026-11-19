@@ -44,14 +44,10 @@ class DeviceLockService
   {
     $event = Event::byCode($eventCode)->firstOrFail();
 
-    return Cache::store('redis')->remember(
-      "device:lock:{$deviceId}",
-      120,
-      fn () => DeviceLock::with('table')
-        ->forEvent($event->id)
-        ->byDeviceId($deviceId)
-        ->first()
-    );
+    return DeviceLock::with('table')
+      ->forEvent($event->id)
+      ->byDeviceId($deviceId)
+      ->first();
   }
 
   public function checkin(CheckinGuestData $data): DeviceLock

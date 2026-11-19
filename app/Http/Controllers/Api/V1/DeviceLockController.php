@@ -48,7 +48,8 @@ class DeviceLockController extends Controller
 
     return $this->sendResponse([
       'exists' => (bool) $lock,
-      'expelled' => false,
+      'expelled' => !$lock,
+      'confirmedMissingOnServer' => !$lock,
       'lock' => $lock ? new DeviceLockResource($lock) : null,
     ], 'Estado de dispositivo consultado.', 200);
   }

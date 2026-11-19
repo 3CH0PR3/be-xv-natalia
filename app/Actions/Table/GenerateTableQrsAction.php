@@ -57,6 +57,9 @@ class GenerateTableQrsAction
       'code' => $t->code,
       'capacity' => $t->capacity,
       'guestsConnected' => $t->deviceLocks->count(),
+      'qrImageUrl' => $t->qr_image_url,
+      'qrSvgUrl' => $t->qr_svg_url,
+      'accessUrl' => $t->access_url,
     ])->all();
 
     broadcast(new TableOccupancyUpdated($event->code, $tablePayload))->toOthers();
