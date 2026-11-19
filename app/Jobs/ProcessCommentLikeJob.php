@@ -24,7 +24,8 @@ class ProcessCommentLikeJob implements ShouldQueue
     public int $commentId,
     public string $actorKey,
     public ?int $likesCount = null,
-    public ?bool $liked = null
+    public ?bool $liked = null,
+    public ?string $deviceId = null
   ) {
     $this->queue = 'default';
   }
@@ -59,7 +60,8 @@ class ProcessCommentLikeJob implements ShouldQueue
       $comment->external_id,
       $likesCount,
       $this->actorKey,
-      $liked
+      $liked,
+      $this->deviceId
     ));
   }
 

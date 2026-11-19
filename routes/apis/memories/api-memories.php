@@ -18,7 +18,7 @@ Route::delete('/memories/{externalId}/media/{mediaItemId}', [MemoryController::c
 
 // Reacciones y compartidos en recuerdos
 Route::post('/memories/{externalId}/reactions/toggle', [MemoryReactionController::class, 'toggle'])
-  ->middleware(['device.lock', 'throttle:api.memories.interactions']);
+  ->middleware(['device.lock', 'throttle:api.memories.reactions']);
 Route::post('/memories/{externalId}/shares', [MemoryReactionController::class, 'share'])
   ->middleware(['device.lock', 'throttle:api.memories.interactions']);
 Route::post('/memories/{externalId}/share', [MemoryController::class, 'incrementShare'])

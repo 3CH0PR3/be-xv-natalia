@@ -19,6 +19,7 @@ class MemoryReactionUpdated implements ShouldBroadcastNow
     public readonly int $cheers,
     public readonly string $actorKey,
     public readonly string $choice,
+    public readonly ?string $deviceId = null,
   ) {}
 
   public function broadcastOn(): array

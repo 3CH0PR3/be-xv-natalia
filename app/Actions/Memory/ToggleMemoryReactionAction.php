@@ -50,7 +50,7 @@ class ToggleMemoryReactionAction
       ]);
 
       DB::afterCommit(static function () use ($memory, $likes, $fires, $cheers, $data, $effectiveChoice): void {
-        ProcessLikeJob::dispatch($memory->id, $data->actorKey, $effectiveChoice, $likes, $fires, $cheers);
+        ProcessLikeJob::dispatch($memory->id, $data->actorKey, $effectiveChoice, $likes, $fires, $cheers, $data->deviceId);
       });
 
       return [

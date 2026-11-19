@@ -18,6 +18,7 @@ class CommentLikeUpdated implements ShouldBroadcastNow
     public readonly int $likes,
     public readonly string $actorKey,
     public readonly bool $liked,
+    public readonly ?string $deviceId = null,
   ) {}
 
   public function broadcastOn(): array

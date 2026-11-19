@@ -27,7 +27,8 @@ class ProcessLikeJob implements ShouldQueue
     public string $choice,
     public ?int $likes = null,
     public ?int $fires = null,
-    public ?int $cheers = null
+    public ?int $cheers = null,
+    public ?string $deviceId = null
   ) {
     $this->queue = 'default';
   }
@@ -67,7 +68,8 @@ class ProcessLikeJob implements ShouldQueue
       $fires,
       $cheers,
       $this->actorKey,
-      $this->choice
+      $this->choice,
+      $this->deviceId
     ));
   }
 

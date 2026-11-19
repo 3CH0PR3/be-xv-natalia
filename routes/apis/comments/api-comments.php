@@ -12,4 +12,4 @@ Route::patch('/memories/{externalId}/comments/{commentExternalId}', [MemoryComme
 Route::delete('/memories/{externalId}/comments/{commentExternalId}', [MemoryCommentController::class, 'destroy'])
   ->middleware('device.lock');
 Route::post('/memories/{externalId}/comments/{commentExternalId}/like', [MemoryCommentController::class, 'toggleLike'])
-  ->middleware(['device.lock', 'throttle:api.memories.interactions']);
+  ->middleware(['device.lock', 'throttle:api.memories.reactions']);

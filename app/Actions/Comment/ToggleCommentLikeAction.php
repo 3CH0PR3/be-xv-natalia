@@ -52,7 +52,7 @@ class ToggleCommentLikeAction
       Cache::store('redis')->forget("memory:comments:{$memory->id}");
 
       DB::afterCommit(static function () use ($comment, $data, $likesCount, $targetLiked): void {
-        ProcessCommentLikeJob::dispatch($comment->id, $data->actorKey, $likesCount, $targetLiked);
+        ProcessCommentLikeJob::dispatch($comment->id, $data->actorKey, $likesCount, $targetLiked, $data->deviceId);
       });
 
       return [
