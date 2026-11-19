@@ -11,6 +11,19 @@ class VerifyHostPinRequest extends FormRequest
     return true;
   }
 
+  protected function prepareForValidation(): void
+  {
+    $pin = $this->input('pin')
+      ?: $this->input('hostPin')
+      ?: $this->input('host_pin')
+      ?: $this->header('X-Host-Pin')
+      ?: $this->header('Host-Pin');
+
+    if ($pin !== null) {
+      $this->merge(['pin' => trim((string) $pin)]);
+    }
+  }
+
   public function rules(): array
   {
     return [

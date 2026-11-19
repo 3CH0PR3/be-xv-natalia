@@ -52,9 +52,14 @@ class User extends Authenticatable
       return false;
     }
 
-    $hostUser = static::where('email', config('xv.host_email', 'anfitriona@xv-natalia-isabela.com'))->first();
-    if ($hostUser && \Illuminate\Support\Facades\Hash::check($cleanPin, $hostUser->password)) {
-      return true;
+    try {
+      $hostEmail = config('xv.host_email', 'anfitriona@xv-natalia-isabela.com');
+      $hostUser = static::where('email', $hostEmail)->first();
+      if ($hostUser && \Illuminate\Support\Facades\Hash::check($cleanPin, $hostUser->password)) {
+        return true;
+      }
+    } catch (\Throwable $e) {
+      // Fallback a configuración si la base de datos aún no tiene la tabla o usuario
     }
 
     $configuredPin = trim((string) config('xv.host_pin', '1515'), " \t\n\r\0\x0B\"'");
