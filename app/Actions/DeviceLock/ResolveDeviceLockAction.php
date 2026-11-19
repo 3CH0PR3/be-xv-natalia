@@ -16,10 +16,13 @@ class ResolveDeviceLockAction
   /** @return array{lock: ?DeviceLock, restoredByFingerprint: bool} */
   public function execute(Event $event, ResolveDeviceLockData $data): array
   {
+    $extraFps = array_filter([$data->deviceId, $data->hwFingerprint]);
+    $candidates = array_values(array_unique(array_merge($data->candidateFingerprints, $extraFps)));
+
     [$lock, $restoredByFp] = $this->findExistingLock(
       $event,
       $data->deviceId,
-      $data->candidateFingerprints
+      $candidates
     );
 
     if (!$lock) {
@@ -27,8 +30,8 @@ class ResolveDeviceLockAction
     }
 
     $candidatesToSync = $data->deviceId !== '' && $data->deviceId !== $lock->device_id
-      ? array_merge($data->candidateFingerprints, [$data->deviceId])
-      : $data->candidateFingerprints;
+      ? array_merge($candidates, [$data->deviceId])
+      : $candidates;
 
     $this->syncFingerprints->execute($lock, $candidatesToSync);
 
@@ -64,6 +67,17 @@ class ResolveDeviceLockAction
 
     if ($fpMatch?->deviceLock) {
       return [$fpMatch->deviceLock, true];
+    }
+
+    $byHwFp = !empty($candidates)
+      ? DeviceLock::with('table')
+        ->forEvent($event->id)
+        ->whereIn('hw_fingerprint', $candidates)
+        ->first()
+      : null;
+
+    if ($byHwFp) {
+      return [$byHwFp, true];
     }
 
     return [null, false];

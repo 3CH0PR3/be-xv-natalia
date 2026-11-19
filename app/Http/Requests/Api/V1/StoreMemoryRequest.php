@@ -38,12 +38,15 @@ class StoreMemoryRequest extends FormRequest
 
   public function toDto(): CreateMemoryData
   {
+    $ownerDeviceId = trim((string) ($this->input('ownerDeviceId') ?: $this->input('deviceId') ?: $this->header('X-Device-Id', '')));
+    $ownerActorKey = trim((string) ($this->input('ownerActorKey') ?: $this->input('actorKey') ?: $this->header('X-Actor-Key', '')));
+
     return new CreateMemoryData(
       eventCode: trim((string) $this->input('eventCode', config('xv.default_event_code', 'XV-NATALIA'))),
       guestName: trim((string) $this->input('guestName')),
       tableCode: trim((string) $this->input('tableCode')),
-      ownerDeviceId: $this->filled('ownerDeviceId') ? trim((string) $this->input('ownerDeviceId')) : null,
-      ownerActorKey: $this->filled('ownerActorKey') ? trim((string) $this->input('ownerActorKey')) : null,
+      ownerDeviceId: $ownerDeviceId !== '' ? $ownerDeviceId : null,
+      ownerActorKey: $ownerActorKey !== '' ? $ownerActorKey : null,
       momentTag: trim((string) ($this->input('momentTag') ?: 'Fiesta en Vivo')),
       caption: trim((string) $this->input('caption', '')),
       files: $this->file('files', []),

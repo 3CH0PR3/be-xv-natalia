@@ -94,7 +94,11 @@ class CheckinGuestAction
         ]
       );
 
-      $this->syncFingerprints->execute($lock, $data->candidateFingerprints);
+      $candidatesToSync = array_values(array_unique(array_filter(array_merge(
+        $data->candidateFingerprints,
+        [$data->deviceId, $data->hwFingerprint]
+      ))));
+      $this->syncFingerprints->execute($lock, $candidatesToSync);
 
       DB::afterCommit(static function () use ($event): void {
         try {

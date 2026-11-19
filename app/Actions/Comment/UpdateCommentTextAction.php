@@ -17,7 +17,7 @@ class UpdateCommentTextAction
   {
     return DB::transaction(function () use ($data, $viewer): MemoryComment {
       $memory = Memory::with('event')->where('external_id', $data->memoryExternalId)->firstOrFail();
-      $comment = MemoryComment::where('memory_id', $memory->id)
+      $comment = MemoryComment::with('deviceLock')->where('memory_id', $memory->id)
         ->where('external_id', $data->commentExternalId)
         ->lockForUpdate()
         ->firstOrFail();

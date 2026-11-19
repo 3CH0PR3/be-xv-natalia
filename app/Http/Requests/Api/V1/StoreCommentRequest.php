@@ -27,14 +27,17 @@ class StoreCommentRequest extends FormRequest
 
   public function toDto(string $memoryExternalId): CreateCommentData
   {
+    $ownerDeviceId = trim((string) ($this->input('ownerDeviceId') ?: $this->input('deviceId') ?: $this->header('X-Device-Id', '')));
+    $ownerActorKey = trim((string) ($this->input('ownerActorKey') ?: $this->input('actorKey') ?: $this->header('X-Actor-Key', '')));
+
     return new CreateCommentData(
       memoryExternalId: $memoryExternalId,
       commentExternalId: $this->filled('id') ? trim((string) $this->input('id')) : null,
       author: trim((string) $this->input('author')),
       table: trim((string) $this->input('table')),
       text: trim((string) $this->input('text')),
-      ownerDeviceId: $this->filled('ownerDeviceId') ? trim((string) $this->input('ownerDeviceId')) : null,
-      ownerActorKey: $this->filled('ownerActorKey') ? trim((string) $this->input('ownerActorKey')) : null,
+      ownerDeviceId: $ownerDeviceId !== '' ? $ownerDeviceId : null,
+      ownerActorKey: $ownerActorKey !== '' ? $ownerActorKey : null,
       deviceLockId: $this->input('deviceLockId') ? (int) $this->input('deviceLockId') : null,
     );
   }
