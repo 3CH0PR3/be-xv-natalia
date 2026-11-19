@@ -10,6 +10,7 @@ use App\Actions\Moderation\PurgeEventDataAction;
 use App\DTOs\DeviceLock\ExpelGuestData;
 use App\Models\Event;
 use App\Models\Memory;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class ModerationService
@@ -24,12 +25,7 @@ class ModerationService
 
   public function verifyHostPin(string $pin): bool
   {
-    $configured = trim((string) config('xv.host_pin', '1515'), " \t\n\r\0\x0B\"'");
-    if ($configured === '') {
-      $configured = '1515';
-    }
-    $incoming = trim($pin, " \t\n\r\0\x0B\"'");
-    return hash_equals($configured, $incoming);
+    return User::verifyHostPin($pin);
   }
 
   public function getMetrics(string $eventCode): array

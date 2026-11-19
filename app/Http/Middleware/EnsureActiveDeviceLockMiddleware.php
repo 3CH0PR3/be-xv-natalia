@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\DeviceLock;
 use App\Models\Event;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,12 +18,11 @@ class EnsureActiveDeviceLockMiddleware
 {
   public function handle(Request $request, Closure $next): Response
   {
-    $configuredPin = (string) config('xv.host_pin', '1515');
     $incomingPin = trim((string) ($request->header('X-Host-Pin')
       ?: $request->input('hostPin')
       ?: $request->query('host_pin')
       ?: ''));
-    if ($configuredPin !== '' && $incomingPin !== '' && hash_equals($configuredPin, $incomingPin)) {
+    if ($incomingPin !== '' && User::verifyHostPin($incomingPin)) {
       return $next($request);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -10,11 +11,6 @@ class VerifyHostPinMiddleware
 {
   public function handle(Request $request, Closure $next): Response
   {
-    $configuredPin = trim((string) config('xv.host_pin', '1515'), " \t\n\r\0\x0B\"'");
-    if ($configuredPin === '') {
-      $configuredPin = '1515';
-    }
-
     $rawPin = (string) (
       $request->header('X-Host-Pin')
       ?: $request->header('Host-Pin')
@@ -27,7 +23,7 @@ class VerifyHostPinMiddleware
 
     $incomingPin = trim($rawPin, " \t\n\r\0\x0B\"'");
 
-    if ($incomingPin === '' || !hash_equals($configuredPin, $incomingPin)) {
+    if ($incomingPin === '' || !User::verifyHostPin($incomingPin)) {
       return response()->json([
         'success' => false,
         'code' => 'HOST_PIN_INVALID',

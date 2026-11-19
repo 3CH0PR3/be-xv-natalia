@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\Event;
 use App\Models\EventTable;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class EventCatalogSeeder extends Seeder
 {
@@ -35,5 +37,13 @@ class EventCatalogSeeder extends Seeder
         array_merge($row, ['capacity' => config('xv.table_default_capacity', 10)])
       );
     }
+
+    User::firstOrCreate(
+      ['email' => config('xv.host_email', 'anfitriona@xv-natalia-isabela.com')],
+      [
+        'name' => 'Anfitriona XV',
+        'password' => Hash::make(config('xv.host_pin', '1515')),
+      ]
+    );
   }
 }
