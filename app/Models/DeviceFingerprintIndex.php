@@ -29,6 +29,6 @@ class DeviceFingerprintIndex extends Model
   public function scopeForCandidates(Builder $query, int $eventId, array $candidates): Builder
   {
     return $query->where('event_id', $eventId)
-      ->whereIn('fingerprint', array_slice(array_values($candidates), 0, 10));
+      ->whereIn('fingerprint', array_values($candidates));
   }
 }

@@ -17,7 +17,7 @@ class SyncDeviceFingerprintsAction
         str_starts_with($fp, 'dev_')
       ))
       ->unique()
-      ->take(15)
+      ->take(25)
       ->values();
 
     $lock->update(['fingerprint_candidates' => $clean->all()]);
