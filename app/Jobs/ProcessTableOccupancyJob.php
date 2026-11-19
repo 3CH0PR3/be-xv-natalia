@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ProcessTableOccupancyJob implements ShouldQueue
@@ -34,12 +35,18 @@ class ProcessTableOccupancyJob implements ShouldQueue
       return;
     }
 
-    $payload = $this->tablesPayload;
-    if ($payload === null) {
-      $tables = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
-      $payload = EventTableResource::collection($tables)->resolve();
+    try {
+      Cache::store('redis')->forget("tables:event:{$event->id}");
+    } catch (\Throwable) {
+      // Ignore cache failure
     }
 
+    if ($this->tablesPayload !== null) {
+      return;
+    }
+
+    $tables = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
+    $payload = EventTableResource::collection($tables)->resolve();
     $eventCode = $event->code ?? config('xv.default_event_code', 'XV-NATALIA');
 
     broadcast(new TablesUpdated($eventCode, $payload));
