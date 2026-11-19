@@ -55,8 +55,8 @@ class User extends Authenticatable
     try {
       $hostEmail = config('xv.host_email', 'anfitriona@xv-natalia-isabela.com');
       $hostUser = static::where('email', $hostEmail)->first();
-      if ($hostUser && \Illuminate\Support\Facades\Hash::check($cleanPin, $hostUser->password)) {
-        return true;
+      if ($hostUser) {
+        return \Illuminate\Support\Facades\Hash::check($cleanPin, $hostUser->password);
       }
     } catch (\Throwable $e) {
       // Fallback a configuración si la base de datos aún no tiene la tabla o usuario

@@ -17,6 +17,8 @@ class CheckinGuestRequest extends FormRequest
     return [
       'eventCode' => ['nullable', 'string', 'max:48'],
       'tableCode' => ['required', 'string', 'max:80'],
+      'qrToken' => ['nullable', 'string', 'max:128'],
+      'token' => ['nullable', 'string', 'max:128'],
       'guestName' => ['required', 'string', 'min:1', 'max:80'],
       'deviceId' => ['required', 'string', 'max:128'],
       'hwFingerprint' => ['nullable', 'string', 'max:128'],
@@ -41,6 +43,7 @@ class CheckinGuestRequest extends FormRequest
       hwFingerprint: $this->filled('hwFingerprint') ? trim((string) $this->input('hwFingerprint')) : null,
       candidateFingerprints: $candidates,
       hardwareSummary: $this->input('hardwareSummary'),
+      qrToken: $this->filled('qrToken') ? trim((string) $this->input('qrToken')) : ($this->filled('token') ? trim((string) $this->input('token')) : null),
     );
   }
 }

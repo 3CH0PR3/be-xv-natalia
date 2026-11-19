@@ -133,8 +133,8 @@ class TableAndCheckinTest extends TestCase
     ]);
 
     $response->assertStatus(200)
-      ->assertJsonCount(6, 'data')
-      ->assertJsonPath('data.0.accessUrl', 'http://192.168.80.10:3000/acceso?mesa=Mesa+01+%C2%B7+Principal');
+      ->assertJsonCount(6, 'data');
+    $this->assertStringStartsWith('http://192.168.80.10:3000/acceso?mesa=mesa-01&token=qrt_', (string) $response->json('data.0.accessUrl'));
 
     $this->assertDatabaseHas('event_tables', [
       'slug' => 'mesa-01',

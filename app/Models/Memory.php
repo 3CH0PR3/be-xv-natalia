@@ -192,12 +192,23 @@ class Memory extends Model
 
   public function isOwnedBy(?string $deviceId, ?string $actorKey = null): bool
   {
-    if ($this->owner_device_id && $deviceId) {
-      return hash_equals($this->owner_device_id, $deviceId);
+    $cleanDevice = trim((string) $deviceId);
+    $cleanActor = trim((string) $actorKey);
+
+    $isDirectDeviceMatch = $this->owner_device_id && $cleanDevice !== '' && hash_equals($this->owner_device_id, $cleanDevice);
+    if ($isDirectDeviceMatch) {
+      return true;
     }
 
-    if ($this->owner_actor_key && $actorKey) {
-      return hash_equals($this->owner_actor_key, $actorKey);
+    $isDirectActorMatch = $this->owner_actor_key && $cleanActor !== '' && hash_equals($this->owner_actor_key, $cleanActor);
+    if ($isDirectActorMatch) {
+      return true;
+    }
+
+    $hasLoadedLock = $this->device_lock_id && $this->relationLoaded('deviceLock') && $this->deviceLock;
+    $isLockDeviceMatch = $hasLoadedLock && $cleanDevice !== '' && hash_equals((string) $this->deviceLock->device_id, $cleanDevice);
+    if ($isLockDeviceMatch) {
+      return true;
     }
 
     return false;

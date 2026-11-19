@@ -5,6 +5,7 @@ namespace App\Actions\Table;
 use App\Events\TableOccupancyUpdated;
 use App\Models\Event;
 use App\Models\EventTable;
+use App\Support\TableCatalog;
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Encoder\Encoder;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
@@ -17,19 +18,22 @@ use Illuminate\Support\Facades\Storage;
 
 class GenerateTableQrsAction
 {
-  public function execute(Event $event, ?string $baseUrl = null): Collection
+  public function execute(Event $event, ?string $baseUrl = null, ?int $tableCount = null): Collection
   {
     $cleanBaseUrl = $this->resolveBaseUrl($baseUrl);
     $disk = Storage::disk(config('xv.media_disk', 'public'));
     $targetDir = "qrs/{$event->code}";
     $disk->makeDirectory($targetDir);
 
+    $this->syncEventTableCount($event, $tableCount);
+
     $tables = EventTable::forEvent($event->id)->ordered()->get();
     $renderer = new ImageRenderer(new RendererStyle(600), new SvgImageBackEnd());
     $writer = new Writer($renderer);
 
     foreach ($tables as $table) {
-      $accessUrl = $this->buildTableAccessUrl($cleanBaseUrl, $table->code);
+      $qrToken = EventTable::generateSecureQrToken();
+      $accessUrl = $this->buildTableAccessUrl($cleanBaseUrl, $table->slug, $qrToken);
       $svgPath = "{$targetDir}/qr-{$table->slug}.svg";
       $pngPath = "{$targetDir}/qr-{$table->slug}.png";
 
@@ -40,6 +44,7 @@ class GenerateTableQrsAction
       $disk->put($pngPath, $pngContent);
 
       $table->update([
+        'qr_token' => $qrToken,
         'qr_image_path' => $pngPath,
         'qr_svg_path' => $svgPath,
         'access_url' => $accessUrl,
@@ -59,12 +64,42 @@ class GenerateTableQrsAction
       'guestsConnected' => $t->deviceLocks->count(),
       'qrImageUrl' => $t->qr_image_url,
       'qrSvgUrl' => $t->qr_svg_url,
+      'qrToken' => $t->qr_token,
       'accessUrl' => $t->access_url,
     ])->all();
 
     broadcast(new TableOccupancyUpdated($event->code, $tablePayload))->toOthers();
 
     return $refreshed;
+  }
+
+  private function syncEventTableCount(Event $event, ?int $tableCount): void
+  {
+    if ($tableCount === null || $tableCount < 1) {
+      return;
+    }
+
+    $slice = TableCatalog::getSlice($tableCount);
+    foreach ($slice as $row) {
+      EventTable::updateOrCreate(
+        ['event_id' => $event->id, 'slug' => $row['slug']],
+        array_merge($row, ['capacity' => config('xv.table_default_capacity', 10)])
+      );
+    }
+
+    $keepSlugs = array_column($slice, 'slug');
+    EventTable::forEvent($event->id)
+      ->whereNotIn('slug', $keepSlugs)
+      ->doesntHave('deviceLocks')
+      ->delete();
+  }
+
+  private function buildTableAccessUrl(string $baseUrl, string $tableSlug, string $qrToken): string
+  {
+    return $baseUrl . '/acceso?' . http_build_query([
+      'mesa' => $tableSlug,
+      'token' => $qrToken,
+    ]);
   }
 
   private function resolveBaseUrl(?string $candidate): string
@@ -95,11 +130,6 @@ class GenerateTableQrsAction
     }
 
     return rtrim($req->getSchemeAndHttpHost(), '/');
-  }
-
-  private function buildTableAccessUrl(string $baseUrl, string $tableCode): string
-  {
-    return $baseUrl . '/acceso?' . http_build_query(['mesa' => $tableCode]);
   }
 
   private function renderPngBytes(string $text): string

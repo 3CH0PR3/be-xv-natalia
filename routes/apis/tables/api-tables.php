@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 // Mesas QR, identidad de dispositivo & Check-in
 Route::get('/tables', [TableController::class, 'index']);
+Route::post('/tables/validate-qr', [TableController::class, 'validateQr']);
 Route::post('/tables/generate-qrs', [TableController::class, 'generateQrs'])
   ->middleware([VerifyHostPinMiddleware::class]);
 

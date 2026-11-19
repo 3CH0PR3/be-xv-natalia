@@ -18,11 +18,17 @@ class EventTable extends Model
     'zone',
     'centerpiece',
     'capacity',
+    'qr_token',
     'qr_image_path',
     'qr_svg_path',
     'access_url',
     'qr_generated_at',
   ];
+
+  public static function generateSecureQrToken(): string
+  {
+    return 'qrt_' . bin2hex(random_bytes(16));
+  }
 
   protected function casts(): array
   {

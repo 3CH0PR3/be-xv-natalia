@@ -13,6 +13,7 @@ final readonly class CheckinGuestData
     public ?string $hwFingerprint,
     public array $candidateFingerprints,
     public ?array $hardwareSummary,
+    public ?string $qrToken = null,
   ) {}
 
   public static function fromArray(array $data): self
@@ -25,6 +26,7 @@ final readonly class CheckinGuestData
       hwFingerprint: $data['hwFingerprint'] ?? null,
       candidateFingerprints: $data['candidateFingerprints'] ?? [],
       hardwareSummary: $data['hardwareSummary'] ?? null,
+      qrToken: $data['qrToken'] ?? ($data['token'] ?? null),
     );
   }
 
@@ -38,6 +40,7 @@ final readonly class CheckinGuestData
       'hwFingerprint' => $this->hwFingerprint,
       'candidateFingerprints' => $this->candidateFingerprints,
       'hardwareSummary' => $this->hardwareSummary,
+      'qrToken' => $this->qrToken,
     ];
   }
 }

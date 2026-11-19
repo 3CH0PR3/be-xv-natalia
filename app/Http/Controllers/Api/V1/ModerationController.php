@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Moderation\ChangeHostPinAction;
 use App\DTOs\Shared\ViewerContextData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ChangeHostPinRequest;
 use App\Http\Requests\Api\V1\ExpelGuestRequest;
 use App\Http\Requests\Api\V1\UpdateMemoryStatusRequest;
 use App\Http\Requests\Api\V1\VerifyHostPinRequest;
@@ -81,5 +83,15 @@ class ModerationController extends Controller
     $result = $this->service->purgeEventData($viewer->eventCode);
 
     return $this->sendResponse($result, 'Datos del evento purgados exitosamente.', 200);
+  }
+
+  public function changePin(ChangeHostPinRequest $request, ChangeHostPinAction $action): JsonResponse
+  {
+    $currentPin = (string) $request->input('currentPin');
+    $newPin = (string) $request->input('newPin');
+
+    $action->execute($currentPin, $newPin);
+
+    return $this->sendResponse(['success' => true], 'PIN de anfitriona actualizado exitosamente.', 200);
   }
 }

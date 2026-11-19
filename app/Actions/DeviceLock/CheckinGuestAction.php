@@ -29,7 +29,18 @@ class CheckinGuestAction
     if (!$targetTable) {
       throw new DomainRuleException(
         'INVALID_TABLE',
-        'El código QR no corresponde a ninguna de las 6 mesas del evento.',
+        'El código QR no corresponde a ninguna de las mesas del evento.',
+        422
+      );
+    }
+
+    $isTokenMismatch = !empty($targetTable->qr_token) && $data->qrToken &&
+      !hash_equals((string) $targetTable->qr_token, (string) $data->qrToken);
+
+    if ($isTokenMismatch) {
+      throw new DomainRuleException(
+        'QR_TOKEN_INVALID',
+        'El código QR ha caducado o fue renovado. Escanea el código oficial actualizado de tu mesa.',
         422
       );
     }

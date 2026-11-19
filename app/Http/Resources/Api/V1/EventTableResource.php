@@ -40,6 +40,7 @@ class EventTableResource extends JsonResource
       'guestsConnected' => count($guests),
       'qrImageUrl' => $resolveStorageUrl($this->qr_image_path),
       'qrSvgUrl' => $resolveStorageUrl($this->qr_svg_path),
+      'qrToken' => $this->qr_token ?? '',
       'accessUrl' => $this->access_url ?? '',
       'qrGeneratedAt' => $this->qr_generated_at?->toIso8601String(),
     ];

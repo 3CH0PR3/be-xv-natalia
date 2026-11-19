@@ -15,7 +15,7 @@ class UpdateMemoryCaptionAction
   public function execute(UpdateCaptionData $data, ViewerContextData $viewer): Memory
   {
     return DB::transaction(function () use ($data, $viewer): Memory {
-      $memory = Memory::with('event')
+      $memory = Memory::with(['event', 'deviceLock'])
         ->where('external_id', $data->externalId)
         ->lockForUpdate()
         ->firstOrFail();
