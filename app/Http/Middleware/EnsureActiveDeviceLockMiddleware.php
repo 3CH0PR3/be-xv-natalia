@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DeviceFingerprintIndex;
 use App\Models\DeviceLock;
 use App\Models\Event;
 use App\Models\User;
@@ -33,8 +34,12 @@ class EnsureActiveDeviceLockMiddleware
       ?: $request->input('deviceId')
       ?: $request->input('ownerDeviceId')
       ?: ''));
+    $actorKey = trim((string) ($request->header('X-Actor-Key')
+      ?: $request->input('actorKey')
+      ?: $request->input('ownerActorKey')
+      ?: ''));
 
-    if ($deviceId === '') {
+    if ($deviceId === '' && $actorKey === '') {
       return response()->json([
         'code' => 'QR_SESSION_REQUIRED',
         'message' => 'Escanea el código QR de tu mesa para interactuar en el muro.',
@@ -42,11 +47,40 @@ class EnsureActiveDeviceLockMiddleware
     }
 
     $event = Event::byCode($eventCode)->first();
-    $hasActiveLock = $event
-      ? DeviceLock::forEvent($event->id)->byDeviceId($deviceId)->exists()
-      : false;
+    if (!$event) {
+      return response()->json([
+        'code' => 'EVENT_NOT_FOUND',
+        'message' => 'Evento no encontrado.',
+      ], Response::HTTP_NOT_FOUND);
+    }
 
-    if (!$hasActiveLock) {
+    $directLock = $deviceId !== ''
+      ? DeviceLock::forEvent($event->id)->byDeviceId($deviceId)->first()
+      : null;
+
+    $fpMatch = (!$directLock && $deviceId !== '')
+      ? DeviceFingerprintIndex::with('deviceLock')
+        ->where('event_id', $event->id)
+        ->where('fingerprint', $deviceId)
+        ->first()
+      : null;
+
+    $fpLock = $fpMatch?->deviceLock;
+
+    $actorLock = (!$directLock && !$fpLock && $actorKey !== '')
+      ? DeviceLock::forEvent($event->id)->where('actor_key', $actorKey)->first()
+      : null;
+
+    $activeLock = $directLock ?: ($fpLock ?: $actorLock);
+
+    if ($actorLock && $deviceId !== '') {
+      DeviceFingerprintIndex::updateOrCreate(
+        ['event_id' => $event->id, 'fingerprint' => $deviceId],
+        ['device_lock_id' => $actorLock->id]
+      );
+    }
+
+    if (!$activeLock) {
       return response()->json([
         'code' => 'DEVICE_LOCK_MISSING',
         'confirmedMissingOnServer' => true,

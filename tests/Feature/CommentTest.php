@@ -109,6 +109,43 @@ class CommentTest extends TestCase
     $this->assertEquals(0, Memory::where('external_id', $memoryId)->first()->comments_count);
   }
 
+  public function test_can_comment_from_linked_browser_or_actor_key(): void
+  {
+    $this->postJson('/api/v1/checkin', [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Andres',
+      'deviceId' => 'dev-andres-apk',
+      'actorKey' => 'mesa-01-principal__andres',
+    ])->assertStatus(201);
+
+    $file = UploadedFile::fake()->image('photo.jpg');
+    $memRes = $this->withHeaders(['X-Device-Id' => 'dev-andres-apk'])
+      ->postJson('/api/v1/memories', [
+        'guestName' => 'Andres',
+        'tableCode' => 'Mesa 01 · Principal',
+        'ownerDeviceId' => 'dev-andres-apk',
+        'ownerActorKey' => 'mesa-01-principal__andres',
+        'files' => [$file],
+      ]);
+    $memoryId = $memRes->json('data.id');
+
+    // Andres comments from browser with a new deviceId but matching actorKey
+    $commentRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-andres-browser-new-id',
+      'X-Actor-Key' => 'mesa-01-principal__andres',
+    ])->postJson("/api/v1/memories/{$memoryId}/comments", [
+      'author' => 'Andres',
+      'table' => 'Mesa 01 · Principal',
+      'text' => 'Comentario desde mi navegador!',
+      'deviceId' => 'dev-andres-browser-new-id',
+      'actorKey' => 'mesa-01-principal__andres',
+    ]);
+
+    $commentRes->assertStatus(201)
+      ->assertJsonPath('data.author', 'Andres');
+  }
+
   public function test_multiple_comments_consecutive_likes_and_unlikes_maintain_exact_count(): void
   {
     $this->postJson('/api/v1/checkin', [
