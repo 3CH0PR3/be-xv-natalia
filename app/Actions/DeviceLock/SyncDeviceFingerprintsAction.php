@@ -11,9 +11,13 @@ class SyncDeviceFingerprintsAction
   public function execute(DeviceLock $lock, array $candidates): void
   {
     $clean = collect(array_merge($candidates, $lock->fingerprint_candidates ?? []))
-      ->filter(static fn ($fp): bool => is_string($fp) && str_starts_with($fp, 'v2_') && strlen($fp) >= 10)
+      ->filter(static fn ($fp): bool => is_string($fp) && strlen($fp) >= 10 && (
+        str_starts_with($fp, 'fphw') ||
+        str_starts_with($fp, 'v2_') ||
+        str_starts_with($fp, 'dev_')
+      ))
       ->unique()
-      ->take(10)
+      ->take(15)
       ->values();
 
     $lock->update(['fingerprint_candidates' => $clean->all()]);

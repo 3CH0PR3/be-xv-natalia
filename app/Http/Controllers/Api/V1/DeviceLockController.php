@@ -36,6 +36,7 @@ class DeviceLockController extends Controller
 
     return $this->sendResponse([
       'lock' => new DeviceLockResource($resolved['lock'], $resolved['restoredByFingerprint']),
+      'restoredByFingerprint' => $resolved['restoredByFingerprint'],
       'confirmedMissingOnServer' => false,
     ], 'Bloqueo de dispositivo resuelto.', 200);
   }

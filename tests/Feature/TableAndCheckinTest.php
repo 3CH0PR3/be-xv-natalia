@@ -106,20 +106,22 @@ class TableAndCheckinTest extends TestCase
       'eventCode' => 'XV-NATALIA',
       'tableCode' => 'Mesa 01 · Principal',
       'guestName' => 'Sofia Garcia',
-      'deviceId' => 'device-sofia',
-      'hwFingerprint' => 'v2_sofia_fp_12345',
-      'candidateFingerprints' => ['v2_sofia_fp_12345'],
+      'deviceId' => 'device-sofia-browser',
+      'hwFingerprint' => 'fphwv2_sofia_fp_12345',
+      'candidateFingerprints' => ['fphwv2_sofia_fp_12345', 'fphwhw2_sofia_hardware_core'],
     ];
     $this->postJson('/api/v1/checkin', $payload)->assertStatus(201);
 
-    $resolvePayload = [
+    // Cross-platform check: TWA opens with a completely different deviceId but same hardware candidates
+    $resolveFromTwaPayload = [
       'eventCode' => 'XV-NATALIA',
-      'deviceId' => 'device-sofia',
-      'candidateFingerprints' => ['v2_sofia_fp_12345'],
+      'deviceId' => 'device-sofia-twa-apk-new-id',
+      'candidateFingerprints' => ['fphwhw2_sofia_hardware_core'],
     ];
-    $res = $this->postJson('/api/v1/device-locks/resolve', $resolvePayload);
+    $res = $this->postJson('/api/v1/device-locks/resolve', $resolveFromTwaPayload);
     $res->assertStatus(200)
-      ->assertJsonPath('data.lock.guestName', 'Sofia Garcia');
+      ->assertJsonPath('data.lock.guestName', 'Sofia Garcia')
+      ->assertJsonPath('data.restoredByFingerprint', true);
   }
 
   public function test_can_generate_table_qrs(): void

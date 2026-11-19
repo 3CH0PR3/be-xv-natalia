@@ -26,7 +26,11 @@ class ResolveDeviceLockAction
       return ['lock' => null, 'restoredByFingerprint' => false];
     }
 
-    $this->syncFingerprints->execute($lock, $data->candidateFingerprints);
+    $candidatesToSync = $data->deviceId !== '' && $data->deviceId !== $lock->device_id
+      ? array_merge($data->candidateFingerprints, [$data->deviceId])
+      : $data->candidateFingerprints;
+
+    $this->syncFingerprints->execute($lock, $candidatesToSync);
 
     if (!empty($data->hardwareSummary)) {
       $lock->update(['hardware_summary' => $data->hardwareSummary]);
