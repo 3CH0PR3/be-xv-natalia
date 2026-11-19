@@ -32,7 +32,7 @@ class CommentService
       "memory:comments:{$memory->id}",
       120,
       fn () => $memory->comments()
-        ->with('commentLikes')
+        ->with(['deviceLock:id,guest_name', 'commentLikes'])
         ->ordered()
         ->get()
     );

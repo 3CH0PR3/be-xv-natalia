@@ -88,6 +88,9 @@ class EnsureActiveDeviceLockMiddleware
       ], Response::HTTP_FORBIDDEN);
     }
 
+    $request->attributes->set('activeDeviceLock', $activeLock);
+    $request->merge(['deviceLockId' => $activeLock->id]);
+
     return $next($request);
   }
 }

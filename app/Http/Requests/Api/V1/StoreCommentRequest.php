@@ -16,6 +16,7 @@ class StoreCommentRequest extends FormRequest
   {
     return [
       'id' => ['nullable', 'string', 'max:128'],
+      'deviceLockId' => ['nullable', 'integer'],
       'author' => ['required', 'string', 'min:1', 'max:80'],
       'table' => ['required', 'string', 'min:1', 'max:80'],
       'text' => ['required', 'string', 'min:1', 'max:500'],
@@ -34,6 +35,7 @@ class StoreCommentRequest extends FormRequest
       text: trim((string) $this->input('text')),
       ownerDeviceId: $this->filled('ownerDeviceId') ? trim((string) $this->input('ownerDeviceId')) : null,
       ownerActorKey: $this->filled('ownerActorKey') ? trim((string) $this->input('ownerActorKey')) : null,
+      deviceLockId: $this->input('deviceLockId') ? (int) $this->input('deviceLockId') : null,
     );
   }
 }

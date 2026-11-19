@@ -5,6 +5,7 @@ namespace App\Actions\Memory;
 use App\DTOs\Memory\CreateMemoryData;
 use App\Http\Resources\Api\V1\MemoryResource;
 use App\Jobs\ProcessMemoryJob;
+use App\Models\DeviceLock;
 use App\Models\Event;
 use App\Models\EventTable;
 use App\Models\Memory;
@@ -25,11 +26,28 @@ class CreateMemoryAction
       $firstMime = $data->files[0]->getMimeType() ?? 'image/jpeg';
       $primaryType = str_starts_with($firstMime, 'video/') ? 'video' : 'image';
 
+      $deviceLockId = $data->deviceLockId;
+      $hasOwnerCredential = ($data->ownerActorKey || $data->ownerDeviceId);
+      if (!$deviceLockId && $hasOwnerCredential) {
+        $deviceLock = DeviceLock::forEvent($event->id)
+          ->where(function ($q) use ($data): void {
+            if ($data->ownerActorKey) {
+              $q->orWhere('actor_key', $data->ownerActorKey);
+            }
+            if ($data->ownerDeviceId) {
+              $q->orWhere('device_id', $data->ownerDeviceId);
+            }
+          })
+          ->first();
+        $deviceLockId = $deviceLock?->id;
+      }
+
       $memory = Memory::updateOrCreate(
         ['external_id' => $externalId],
         [
           'event_id' => $event->id,
           'event_table_id' => $table?->id,
+          'device_lock_id' => $deviceLockId,
           'guest_name' => $data->guestName,
           'table_code' => $data->tableCode,
           'owner_device_id' => $data->ownerDeviceId,
@@ -73,7 +91,7 @@ class CreateMemoryAction
         $mediaItemIds[] = $mediaItem->id;
       }
 
-      $freshMemory = $memory->fresh(['mediaItems', 'reactions', 'comments.commentLikes']);
+      $freshMemory = $memory->fresh(['deviceLock:id,guest_name', 'mediaItems', 'reactions', 'comments.commentLikes']);
 
       DB::afterCommit(static function () use ($freshMemory): void {
         // Dispatch async job for notifications, media optimization, caching & broadcasting

@@ -19,7 +19,7 @@ class MemoryCommentResource extends JsonResource
 
     return [
       'id' => $this->external_id,
-      'author' => $this->author,
+      'author' => $this->resolved_author,
       'table' => $this->table_label,
       'text' => $this->text,
       'likes' => $this->likes_count,

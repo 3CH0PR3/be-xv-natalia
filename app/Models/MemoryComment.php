@@ -15,6 +15,7 @@ class MemoryComment extends Model
   protected $fillable = [
     'external_id',
     'memory_id',
+    'device_lock_id',
     'author',
     'table_label',
     'text',
@@ -35,6 +36,16 @@ class MemoryComment extends Model
   public function memory(): BelongsTo
   {
     return $this->belongsTo(Memory::class);
+  }
+
+  public function deviceLock(): BelongsTo
+  {
+    return $this->belongsTo(DeviceLock::class);
+  }
+
+  public function getResolvedAuthorAttribute(): string
+  {
+    return $this->deviceLock?->guest_name ?? $this->author ?? '';
   }
 
   public function commentLikes(): HasMany

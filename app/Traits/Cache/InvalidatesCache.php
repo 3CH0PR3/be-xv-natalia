@@ -19,18 +19,17 @@ trait InvalidatesCache
   protected function scanAndDelete(string $logicalPattern): void
   {
     try {
-      $redis = Cache::store('redis')->getRedis();
-      $redisPrefix = config('database.redis.options.prefix', '');
-      $cachePrefix = config('cache.prefix', '');
-      $fullPattern = $redisPrefix . $cachePrefix . $logicalPattern;
+      $redisStore = Cache::store('redis');
+      $rawRedis = $redisStore->getStore()->connection()->client();
+      $cachePrefix = (string) config('cache.prefix', '');
+      $fullPattern = $cachePrefix . $logicalPattern;
 
-      $cursor = '0';
-      do {
-        [$cursor, $keys] = $redis->scan($cursor, 'MATCH', $fullPattern, 'COUNT', 100);
+      $it = null;
+      while ($keys = $rawRedis->scan($it, $fullPattern, 100)) {
         if (!empty($keys)) {
-          $redis->del(...$keys);
+          $rawRedis->del($keys);
         }
-      } while ($cursor !== '0' && !empty($cursor));
+      }
     } catch (\Throwable $e) {
       // Log or fallback safely if Redis scan encounters connection issue
       Log::error('Redis scanAndDelete error: ' . $e->getMessage(), ['pattern' => $logicalPattern, 'exception' => $e]);

@@ -19,6 +19,7 @@ final readonly class CreateMemoryData
     public array $files,
     public array $posters = [],
     public ?string $externalId = null,
+    public ?int $deviceLockId = null,
   ) {}
 
   public static function fromArray(array $data): self
@@ -34,6 +35,7 @@ final readonly class CreateMemoryData
       files: $data['files'] ?? [],
       posters: $data['posters'] ?? [],
       externalId: $data['externalId'] ?? ($data['id'] ?? null),
+      deviceLockId: isset($data['deviceLockId']) ? (int) $data['deviceLockId'] : null,
     );
   }
 
@@ -41,6 +43,7 @@ final readonly class CreateMemoryData
   {
     return [
       'externalId' => $this->externalId,
+      'deviceLockId' => $this->deviceLockId,
       'eventCode' => $this->eventCode,
       'guestName' => $this->guestName,
       'tableCode' => $this->tableCode,

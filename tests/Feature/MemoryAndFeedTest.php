@@ -152,4 +152,83 @@ class MemoryAndFeedTest extends TestCase
 
     $this->assertDatabaseMissing('memories', ['external_id' => $externalId]);
   }
+
+  public function test_relational_device_lock_updates_name_across_memories_and_comments_with_fallback(): void
+  {
+    $file = UploadedFile::fake()->image('quince_photo.jpg');
+
+    // 1. Checkin
+    $checkinRes = $this->postJson('/api/v1/checkin', [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Andres Original',
+      'deviceId' => 'dev-andres-rel',
+      'actorKey' => 'actor-andres-rel',
+    ]);
+    $checkinRes->assertStatus(201);
+
+    // 2. Publish memory
+    $memRes = $this->withHeaders(['X-Device-Id' => 'dev-andres-rel', 'X-Actor-Key' => 'actor-andres-rel'])
+      ->postJson('/api/v1/memories', [
+        'eventCode' => 'XV-NATALIA',
+        'guestName' => 'Andres Original',
+        'tableCode' => 'Mesa 01 · Principal',
+        'ownerDeviceId' => 'dev-andres-rel',
+        'ownerActorKey' => 'actor-andres-rel',
+        'momentTag' => 'Fiesta en Vivo',
+        'caption' => 'Hermosa fiesta!',
+        'files' => [$file],
+      ]);
+    $memRes->assertStatus(201)
+      ->assertJsonPath('data.guestName', 'Andres Original');
+    $memoryId = $memRes->json('data.id');
+
+    // 3. Add comment
+    $commRes = $this->withHeaders(['X-Device-Id' => 'dev-andres-rel', 'X-Actor-Key' => 'actor-andres-rel'])
+      ->postJson("/api/v1/memories/{$memoryId}/comments", [
+        'author' => 'Andres Original',
+        'table' => 'Mesa 01 · Principal',
+        'text' => 'Comentario de prueba relacional',
+        'deviceId' => 'dev-andres-rel',
+        'actorKey' => 'actor-andres-rel',
+      ]);
+    $commRes->assertStatus(201)
+      ->assertJsonPath('data.author', 'Andres Original');
+
+    // Verify foreign keys are populated in DB
+    $memoryRecord = \App\Models\Memory::where('external_id', $memoryId)->first();
+    $commentRecord = \App\Models\MemoryComment::where('memory_id', $memoryRecord->id)->first();
+    $this->assertNotNull($memoryRecord->device_lock_id);
+    $this->assertNotNull($commentRecord->device_lock_id);
+
+    // 4. Update guest name in the source of truth (device_locks)
+    $deviceLock = \App\Models\DeviceLock::find($memoryRecord->device_lock_id);
+    $deviceLock->update(['guest_name' => 'Andres Actualizado']);
+
+    // 5. Query memory feed API -> guestName must dynamically reflect "Andres Actualizado"
+    $getMemRes = $this->getJson("/api/v1/memories/{$memoryId}");
+    $getMemRes->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Andres Actualizado');
+
+    // 6. Query comment API -> author must dynamically reflect "Andres Actualizado"
+    $getCommRes = $this->getJson("/api/v1/memories/{$memoryId}/comments");
+    $getCommRes->assertStatus(200)
+      ->assertJsonPath('data.0.author', 'Andres Actualizado');
+
+    // 7. Delete device_lock (guest expelled / nullOnDelete)
+    $deviceLock->delete();
+    $memoryRecord->refresh();
+    $commentRecord->refresh();
+    $this->assertNull($memoryRecord->device_lock_id);
+    $this->assertNull($commentRecord->device_lock_id);
+
+    // 8. Both memory and comment must gracefully fallback to historical text
+    $getMemFallback = $this->getJson("/api/v1/memories/{$memoryId}");
+    $getMemFallback->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Andres Original');
+
+    $getCommFallback = $this->getJson("/api/v1/memories/{$memoryId}/comments");
+    $getCommFallback->assertStatus(200)
+      ->assertJsonPath('data.0.author', 'Andres Original');
+  }
 }

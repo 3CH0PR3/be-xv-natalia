@@ -24,11 +24,18 @@ class DeviceLockObserver
   {
     Cache::store('redis')->forget("tables:event:{$lock->event_id}");
     Cache::store('redis')->forget("device:lock:{$lock->device_id}");
+
+    if ($lock->wasChanged('guest_name')) {
+      $this->scanAndDelete("memories:feed:event:{$lock->event_id}:*");
+      $this->scanAndDelete("memory:comments:*");
+    }
   }
 
   public function deleted(DeviceLock $lock): void
   {
     Cache::store('redis')->forget("tables:event:{$lock->event_id}");
     Cache::store('redis')->forget("device:lock:{$lock->device_id}");
+    $this->scanAndDelete("memories:feed:event:{$lock->event_id}:*");
+    $this->scanAndDelete("memory:comments:*");
   }
 }

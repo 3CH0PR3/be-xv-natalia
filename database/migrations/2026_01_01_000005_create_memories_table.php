@@ -12,6 +12,7 @@ return new class extends Migration {
       $table->string('external_id', 128)->unique('uq_memories_external_id');
       $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
       $table->foreignId('event_table_id')->nullable()->constrained('event_tables')->nullOnDelete();
+      $table->foreignId('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
       $table->string('guest_name', 80);
       $table->string('table_code', 80);
       $table->string('owner_device_id', 128)->nullable();
@@ -29,6 +30,7 @@ return new class extends Migration {
       $table->timestamps();
 
       $table->index(['event_id', 'status', 'timestamp_ms'], 'idx_memories_feed');
+      $table->index(['event_id', 'device_lock_id'], 'idx_memories_device_lock');
       $table->index(['event_id', 'owner_device_id', 'timestamp_ms'], 'idx_memories_owner_device');
       $table->index(['event_id', 'owner_actor_key', 'timestamp_ms'], 'idx_memories_owner_actor');
       $table->index(['event_id', 'table_code', 'timestamp_ms'], 'idx_memories_table_code');

@@ -50,6 +50,16 @@ class DeviceLock extends Model
     return $this->hasMany(DeviceFingerprintIndex::class);
   }
 
+  public function memories(): HasMany
+  {
+    return $this->hasMany(Memory::class);
+  }
+
+  public function comments(): HasMany
+  {
+    return $this->hasMany(MemoryComment::class);
+  }
+
   public function scopeForEvent(Builder $query, int $eventId): Builder
   {
     return $query->where('event_id', $eventId);

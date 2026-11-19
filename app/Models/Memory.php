@@ -21,6 +21,7 @@ class Memory extends Model
     'external_id',
     'event_id',
     'event_table_id',
+    'device_lock_id',
     'guest_name',
     'table_code',
     'owner_device_id',
@@ -57,6 +58,16 @@ class Memory extends Model
   public function table(): BelongsTo
   {
     return $this->belongsTo(EventTable::class, 'event_table_id');
+  }
+
+  public function deviceLock(): BelongsTo
+  {
+    return $this->belongsTo(DeviceLock::class);
+  }
+
+  public function getResolvedGuestNameAttribute(): string
+  {
+    return $this->deviceLock?->guest_name ?? $this->guest_name ?? '';
   }
 
   public function mediaItems(): HasMany
@@ -149,7 +160,9 @@ class Memory extends Model
   public function scopeWithWallRelations(Builder $query, ?string $viewerActorKey = null, ?string $viewerDeviceId = null): Builder
   {
     return $query->with([
+      'deviceLock:id,guest_name',
       'mediaItems',
+      'comments.deviceLock:id,guest_name',
       'comments.commentLikes' => static function ($q): void {
         $q->select(['id', 'comment_id', 'actor_key', 'device_id']);
       },
