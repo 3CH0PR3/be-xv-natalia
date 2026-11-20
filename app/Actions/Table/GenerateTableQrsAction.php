@@ -4,6 +4,7 @@ namespace App\Actions\Table;
 
 use App\DTOs\Table\GenerateTableQrsData;
 use App\Events\TableOccupancyUpdated;
+use App\Models\DeviceLock;
 use App\Models\Event;
 use App\Models\EventTable;
 use App\Support\TableCatalog;
@@ -43,7 +44,11 @@ class GenerateTableQrsAction
 
     $this->syncEventTableCount($event, $resolvedTableCount);
 
-    $tables = EventTable::forEvent($event->id)->ordered()->get();
+    $activeSlugs = array_column(TableCatalog::getSlice($resolvedTableCount ?? 20), 'slug');
+    $tables = EventTable::forEvent($event->id)
+      ->whereIn('slug', $activeSlugs)
+      ->ordered()
+      ->get();
     $renderer = new ImageRenderer(new RendererStyle(600), new SvgImageBackEnd());
     $writer = new Writer($renderer);
 
@@ -70,19 +75,26 @@ class GenerateTableQrsAction
 
     Cache::store('redis')->forget("tables:event:{$event->id}");
 
-    $refreshed = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
+    $refreshed = EventTable::with('deviceLocks')
+      ->forEvent($event->id)
+      ->whereIn('slug', $activeSlugs)
+      ->ordered()
+      ->get();
 
-    $tablePayload = $refreshed->map(static fn (EventTable $t): array => [
-      'id' => $t->slug,
-      'number' => $t->number,
-      'code' => $t->code,
-      'capacity' => $t->capacity,
-      'guestsConnected' => $t->deviceLocks->count(),
-      'qrImageUrl' => $t->qr_image_url,
-      'qrSvgUrl' => $t->qr_svg_url,
-      'qrToken' => $t->qr_token,
-      'accessUrl' => $t->access_url,
-    ])->all();
+    $tablePayload = $refreshed->map(static function (EventTable $t) use ($disk): array {
+      $tokenSuffix = $t->qr_token ? '?v=' . substr($t->qr_token, 4, 8) : '';
+      return [
+        'id' => $t->slug,
+        'number' => $t->number,
+        'code' => $t->code,
+        'capacity' => $t->capacity,
+        'guestsConnected' => $t->deviceLocks->count(),
+        'qrImageUrl' => $t->qr_image_path ? $disk->url($t->qr_image_path) . $tokenSuffix : '',
+        'qrSvgUrl' => $t->qr_svg_path ? $disk->url($t->qr_svg_path) . $tokenSuffix : '',
+        'qrToken' => $t->qr_token,
+        'accessUrl' => $t->access_url,
+      ];
+    })->all();
 
     broadcast(new TableOccupancyUpdated($event->code, $tablePayload))->toOthers();
 
@@ -104,9 +116,15 @@ class GenerateTableQrsAction
     }
 
     $keepSlugs = array_column($slice, 'slug');
+    $staleTableIds = EventTable::forEvent($event->id)
+      ->whereNotIn('slug', $keepSlugs)
+      ->pluck('id')
+      ->all();
+
+    DeviceLock::whereIn('event_table_id', $staleTableIds)->delete();
+
     EventTable::forEvent($event->id)
       ->whereNotIn('slug', $keepSlugs)
-      ->doesntHave('deviceLocks')
       ->delete();
   }
 

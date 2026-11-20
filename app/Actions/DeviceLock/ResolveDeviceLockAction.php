@@ -101,6 +101,36 @@ class ResolveDeviceLockAction
       return [$byHardware, true];
     }
 
+    $byResilient = $this->findByResilientHardware($event, $hardwareSummary);
+    if ($byResilient) {
+      return [$byResilient, true];
+    }
+
     return [null, false];
+  }
+
+  private function findByResilientHardware(Event $event, ?array $summary): ?DeviceLock
+  {
+    if (empty($summary)) {
+      return null;
+    }
+
+    $os = trim((string) ($summary['os'] ?? ''));
+    $metrics = trim((string) ($summary['metrics'] ?? ''));
+    if ($os === '' || $metrics === '') {
+      return null;
+    }
+
+    $scrToken = preg_match('/scr:([^|]+)/', $metrics, $m) ? $m[1] : '';
+    if ($scrToken === '') {
+      return null;
+    }
+
+    return DeviceLock::with('table')
+      ->forEvent($event->id)
+      ->where('hardware_summary->os', $os)
+      ->where('hardware_summary->metrics', 'like', "%scr:{$scrToken}%")
+      ->latest('locked_at')
+      ->first();
   }
 }
