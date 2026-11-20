@@ -27,7 +27,7 @@ class RateLimitingAndReactionsTest extends TestCase
     RateLimiter::clearResolvedInstances();
   }
 
-  public function test_reactions_are_rate_limited_to_5_per_minute_with_spanish_message(): void
+  public function test_reactions_are_rate_limited_to_60_per_minute_with_spanish_message(): void
   {
     $event = Event::byCode('XV-NATALIA')->first();
     $table = EventTable::where('event_id', $event->id)->first();
@@ -51,8 +51,8 @@ class RateLimitingAndReactionsTest extends TestCase
       'status' => 'approved',
     ]);
 
-    // First 5 requests must succeed
-    for ($i = 0; $i < 5; $i++) {
+    // First 60 requests must succeed
+    for ($i = 0; $i < 60; $i++) {
       $choice = ($i % 2 === 0) ? 'likes' : 'fires';
       $res = $this->withHeaders(['X-Device-Id' => 'dev-rate-limit-reactions'])
         ->postJson("/api/v1/memories/{$memory->external_id}/reactions/toggle", [
@@ -63,7 +63,7 @@ class RateLimitingAndReactionsTest extends TestCase
       $res->assertStatus(200);
     }
 
-    // 6th request within same minute must be blocked with HTTP 429 and Spanish copy
+    // 61st request within same minute must be blocked with HTTP 429 and Spanish copy
     $blockedRes = $this->withHeaders(['X-Device-Id' => 'dev-rate-limit-reactions'])
       ->postJson("/api/v1/memories/{$memory->external_id}/reactions/toggle", [
         'actorKey' => 'actor-rate-limit-reactions',
@@ -74,10 +74,10 @@ class RateLimitingAndReactionsTest extends TestCase
     $blockedRes->assertStatus(429)
       ->assertJsonPath('success', false)
       ->assertJsonPath('code', 429)
-      ->assertJsonPath('message', 'Has alcanzado el límite de 5 reacciones por minuto. Por favor, espera un momento antes de volver a reaccionar.');
+      ->assertJsonPath('message', 'Has alcanzado el límite de reacciones permitidas por minuto. Por favor, espera un momento antes de volver a reaccionar.');
   }
 
-  public function test_comments_are_rate_limited_to_10_per_minute_with_spanish_message(): void
+  public function test_comments_are_rate_limited_to_30_per_minute_with_spanish_message(): void
   {
     $event = Event::byCode('XV-NATALIA')->first();
     $table = EventTable::where('event_id', $event->id)->first();
@@ -101,8 +101,8 @@ class RateLimitingAndReactionsTest extends TestCase
       'status' => 'approved',
     ]);
 
-    // First 10 comments must succeed
-    for ($i = 1; $i <= 10; $i++) {
+    // First 30 comments must succeed
+    for ($i = 1; $i <= 30; $i++) {
       $res = $this->withHeaders(['X-Device-Id' => 'dev-rate-limit-comments', 'X-Actor-Key' => 'actor-rate-limit-comments'])
         ->postJson("/api/v1/memories/{$memory->external_id}/comments", [
           'author' => 'Comment Rate Tester',
@@ -114,12 +114,12 @@ class RateLimitingAndReactionsTest extends TestCase
       $res->assertStatus(201);
     }
 
-    // 11th comment within same minute must be blocked with HTTP 429 and Spanish copy
+    // 31st comment within same minute must be blocked with HTTP 429 and Spanish copy
     $blockedRes = $this->withHeaders(['X-Device-Id' => 'dev-rate-limit-comments', 'X-Actor-Key' => 'actor-rate-limit-comments'])
       ->postJson("/api/v1/memories/{$memory->external_id}/comments", [
         'author' => 'Comment Rate Tester',
         'table' => $table->code,
-        'text' => 'Comentario #11 que excede el límite',
+        'text' => 'Comentario #31 que excede el límite',
         'ownerDeviceId' => 'dev-rate-limit-comments',
         'ownerActorKey' => 'actor-rate-limit-comments',
       ]);
@@ -127,7 +127,7 @@ class RateLimitingAndReactionsTest extends TestCase
     $blockedRes->assertStatus(429)
       ->assertJsonPath('success', false)
       ->assertJsonPath('code', 429)
-      ->assertJsonPath('message', 'Has alcanzado el límite de 10 comentarios por minuto. Por favor, espera un momento antes de volver a comentar.');
+      ->assertJsonPath('message', 'Has alcanzado el límite de comentarios permitidos por minuto. Por favor, espera un momento antes de volver a comentar.');
   }
 
   public function test_reverb_events_include_device_id_for_precise_actor_matching(): void

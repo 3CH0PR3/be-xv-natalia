@@ -46,24 +46,24 @@ class RateLimiterProvider extends ServiceProvider
 
     RateLimiter::for('api.memories.reactions', static function (Request $request) {
       $key = (string) ($request->header('X-Device-Id') ?: ($request->header('X-Actor-Key') ?: $request->ip()));
-      return Limit::perMinute(5)
+      return Limit::perMinute(60)
         ->by($key)
         ->response(static fn () => response()->json([
           'success' => false,
           'code' => 429,
-          'message' => 'Has alcanzado el límite de 5 reacciones por minuto. Por favor, espera un momento antes de volver a reaccionar.',
+          'message' => 'Has alcanzado el límite de reacciones permitidas por minuto. Por favor, espera un momento antes de volver a reaccionar.',
           'data' => null,
         ], 429));
     });
 
     RateLimiter::for('api.comments', static function (Request $request) {
       $key = (string) ($request->header('X-Device-Id') ?: ($request->header('X-Actor-Key') ?: $request->ip()));
-      return Limit::perMinute(10)
+      return Limit::perMinute(30)
         ->by($key)
         ->response(static fn () => response()->json([
           'success' => false,
           'code' => 429,
-          'message' => 'Has alcanzado el límite de 10 comentarios por minuto. Por favor, espera un momento antes de volver a comentar.',
+          'message' => 'Has alcanzado el límite de comentarios permitidos por minuto. Por favor, espera un momento antes de volver a comentar.',
           'data' => null,
         ], 429));
     });
