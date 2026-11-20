@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 // Muro de recuerdos y multimedia
 Route::get('/memories', [MemoryController::class, 'index']);
 Route::get('/memories/{externalId}', [MemoryController::class, 'show']);
+Route::get('/memories/{externalId}/preview', [MemoryController::class, 'preview']);
 Route::post('/memories', [MemoryController::class, 'store'])
   ->middleware(['device.lock', 'throttle:api.memories.store']);
 Route::patch('/memories/{externalId}/caption', [MemoryController::class, 'updateCaption'])

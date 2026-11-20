@@ -2,15 +2,19 @@
 
 namespace App\Actions\Moderation;
 
+use App\DTOs\Moderation\ChangeHostPinData;
 use App\Exceptions\DomainRuleException;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class ChangeHostPinAction
 {
-  public function execute(string $currentPin, string $newPin): bool
+  public function execute(ChangeHostPinData|string $currentPin, ?string $newPin = null): bool
   {
-    $isValid = User::verifyHostPin($currentPin);
+    $resolvedCurrentPin = $currentPin instanceof ChangeHostPinData ? $currentPin->currentPin : $currentPin;
+    $resolvedNewPin = $currentPin instanceof ChangeHostPinData ? $currentPin->newPin : (string) $newPin;
+
+    $isValid = User::verifyHostPin($resolvedCurrentPin);
     if (!$isValid) {
       throw new DomainRuleException(
         'INVALID_CURRENT_PIN',
@@ -19,7 +23,7 @@ class ChangeHostPinAction
       );
     }
 
-    $cleanNew = trim($newPin);
+    $cleanNew = trim($resolvedNewPin);
     if (strlen($cleanNew) < 4) {
       throw new DomainRuleException(
         'PIN_TOO_SHORT',

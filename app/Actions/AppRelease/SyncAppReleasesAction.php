@@ -7,6 +7,7 @@ use App\Events\AppReleasePublished;
 use App\Http\Resources\Api\V1\AppReleaseResource;
 use App\Models\AppRelease;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class SyncAppReleasesAction
@@ -39,6 +40,8 @@ class SyncAppReleasesAction
         $hasLatestChange = true;
       }
     }
+
+    Cache::store('redis')->forget('app:releases:list');
 
     $ordered = AppRelease::latestOrder()->get();
 

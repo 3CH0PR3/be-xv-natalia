@@ -4,20 +4,20 @@ namespace App\Services;
 
 use App\Actions\Comment\CreateCommentAction;
 use App\Actions\Comment\DeleteCommentAction;
+use App\Actions\Comment\ListCommentsAction;
 use App\Actions\Comment\ToggleCommentLikeAction;
 use App\Actions\Comment\UpdateCommentTextAction;
 use App\DTOs\Comment\CreateCommentData;
 use App\DTOs\Comment\ToggleCommentLikeData;
 use App\DTOs\Comment\UpdateCommentData;
 use App\DTOs\Shared\ViewerContextData;
-use App\Models\Memory;
 use App\Models\MemoryComment;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class CommentService
 {
   public function __construct(
+    private readonly ListCommentsAction $listComments,
     private readonly CreateCommentAction $createComment,
     private readonly UpdateCommentTextAction $updateComment,
     private readonly DeleteCommentAction $deleteComment,
@@ -26,16 +26,7 @@ class CommentService
 
   public function listComments(string $memoryExternalId): Collection
   {
-    $memory = Memory::where('external_id', $memoryExternalId)->firstOrFail();
-
-    return Cache::store('redis')->remember(
-      "memory:comments:{$memory->id}",
-      120,
-      fn () => $memory->comments()
-        ->with(['deviceLock:id,guest_name', 'commentLikes'])
-        ->ordered()
-        ->get()
-    );
+    return $this->listComments->execute($memoryExternalId);
   }
 
   public function addComment(CreateCommentData $data): MemoryComment

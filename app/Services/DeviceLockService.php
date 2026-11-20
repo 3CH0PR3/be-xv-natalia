@@ -3,34 +3,31 @@
 namespace App\Services;
 
 use App\Actions\DeviceLock\CheckinGuestAction;
+use App\Actions\DeviceLock\CheckDeviceStatusAction;
+use App\Actions\DeviceLock\ExpelGuestAction;
 use App\Actions\DeviceLock\ResolveDeviceLockAction;
+use App\Actions\Table\ListTablesAction;
 use App\DTOs\DeviceLock\CheckinGuestData;
+use App\DTOs\DeviceLock\DeviceStatusData;
+use App\DTOs\DeviceLock\ExpelGuestData;
 use App\DTOs\DeviceLock\ResolveDeviceLockData;
 use App\Models\DeviceLock;
 use App\Models\Event;
-use App\Models\EventTable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class DeviceLockService
 {
   public function __construct(
     private readonly ResolveDeviceLockAction $resolveLock,
     private readonly CheckinGuestAction $checkinGuest,
+    private readonly CheckDeviceStatusAction $checkDeviceStatus,
+    private readonly ExpelGuestAction $expelGuest,
+    private readonly ListTablesAction $listTables,
   ) {}
 
   public function listTables(string $eventCode): Collection
   {
-    $event = Event::byCode($eventCode)->firstOrFail();
-
-    return Cache::store('redis')->remember(
-      "tables:event:{$event->id}",
-      60,
-      fn () => EventTable::with('deviceLocks')
-        ->forEvent($event->id)
-        ->ordered()
-        ->get()
-    );
+    return $this->listTables->execute($eventCode);
   }
 
   /** @return array{lock: ?DeviceLock, restoredByFingerprint: bool} */
@@ -40,19 +37,23 @@ class DeviceLockService
     return $this->resolveLock->execute($event, $data);
   }
 
-  public function checkDeviceStatus(string $eventCode, string $deviceId): ?DeviceLock
+  public function checkDeviceStatus(DeviceStatusData|string $data, ?string $deviceId = null): ?DeviceLock
   {
-    $event = Event::byCode($eventCode)->firstOrFail();
+    $eventCode = $data instanceof DeviceStatusData ? $data->eventCode : (string) $data;
+    $targetDeviceId = $data instanceof DeviceStatusData ? $data->deviceId : (string) $deviceId;
 
-    return DeviceLock::with('table')
-      ->forEvent($event->id)
-      ->byDeviceId($deviceId)
-      ->first();
+    return $this->checkDeviceStatus->execute($eventCode, $targetDeviceId);
   }
 
   public function checkin(CheckinGuestData $data): DeviceLock
   {
     $event = Event::byCode($data->eventCode)->firstOrFail();
     return $this->checkinGuest->execute($event, $data);
+  }
+
+  public function expelGuest(ExpelGuestData $data): Collection
+  {
+    $event = Event::byCode($data->eventCode)->firstOrFail();
+    return $this->expelGuest->execute($event, $data);
   }
 }

@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\Shared\ViewerContextData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\IncrementMemoryShareRequest;
 use App\Http\Requests\Api\V1\ListMemoriesRequest;
 use App\Http\Requests\Api\V1\StoreMemoryRequest;
 use App\Http\Requests\Api\V1\UpdateMemoryCaptionRequest;
 use App\Http\Resources\Api\V1\MemoryCollection;
+use App\Http\Resources\Api\V1\MemoryPreviewResource;
 use App\Http\Resources\Api\V1\MemoryResource;
+use App\Http\Resources\Api\V1\MemoryShareResource;
 use App\Services\MemoryService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
@@ -43,10 +46,18 @@ class MemoryController extends Controller
     );
   }
 
+  public function preview(string $externalId): JsonResponse
+  {
+    $preview = $this->service->getMemoryPreview($externalId);
+
+    return (new MemoryPreviewResource($preview))
+      ->response()
+      ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+  }
+
   public function store(StoreMemoryRequest $request): JsonResponse
   {
-    $dto = $request->toDto();
-    $memory = $this->service->publishMemory($dto);
+    $memory = $this->service->publishMemory($request->toDto());
 
     return $this->sendResponse(
       new MemoryResource($memory),
@@ -94,19 +105,14 @@ class MemoryController extends Controller
     );
   }
 
-  public function incrementShare(string $externalId, Request $request): JsonResponse
+  public function incrementShare(string $externalId, IncrementMemoryShareRequest $request): JsonResponse
   {
-    $actorKey = trim((string) ($request->header('X-Actor-Key') ?: $request->input('actorKey', '')));
-    $deviceId = trim((string) ($request->header('X-Device-Id') ?: $request->input('deviceId', '')));
-    $deviceLockId = $request->input('deviceLockId') ? (int) $request->input('deviceLockId') : null;
+    $memory = $this->service->incrementShare($request->toDto($externalId));
 
-    $memory = $this->service->incrementShare($externalId, $actorKey, $deviceId, $deviceLockId);
-
-    return $this->sendResponse([
-      'id' => $memory->external_id,
-      'externalId' => $memory->external_id,
-      'shares' => $memory->shares_count,
-      'sharesCount' => $memory->shares_count,
-    ], 'Contador de compartidos incrementado.', 200);
+    return $this->sendResponse(
+      new MemoryShareResource($memory),
+      'Contador de compartidos incrementado.',
+      200
+    );
   }
 }

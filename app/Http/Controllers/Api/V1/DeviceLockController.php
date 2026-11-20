@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\DTOs\Shared\ViewerContextData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\CheckinGuestRequest;
+use App\Http\Requests\Api\V1\DeviceStatusRequest;
 use App\Http\Requests\Api\V1\ExpelGuestRequest;
 use App\Http\Requests\Api\V1\ResolveDeviceLockRequest;
 use App\Http\Resources\Api\V1\DeviceLockResource;
+use App\Http\Resources\Api\V1\DeviceStatusResource;
 use App\Http\Resources\Api\V1\EventTableResource;
 use App\Services\DeviceLockService;
-use App\Services\ModerationService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class DeviceLockController extends Controller
 {
@@ -41,17 +40,15 @@ class DeviceLockController extends Controller
     ], 'Bloqueo de dispositivo resuelto.', 200);
   }
 
-  public function status(string $deviceId, Request $request): JsonResponse
+  public function status(string $deviceId, DeviceStatusRequest $request): JsonResponse
   {
-    $viewer = ViewerContextData::fromRequest($request);
-    $lock = $this->service->checkDeviceStatus($viewer->eventCode, $deviceId);
+    $lock = $this->service->checkDeviceStatus($request->toDto($deviceId));
 
-    return $this->sendResponse([
-      'exists' => (bool) $lock,
-      'expelled' => !$lock,
-      'confirmedMissingOnServer' => !$lock,
-      'lock' => $lock ? new DeviceLockResource($lock) : null,
-    ], 'Estado de dispositivo consultado.', 200);
+    return $this->sendResponse(
+      new DeviceStatusResource($lock),
+      'Estado de dispositivo consultado.',
+      200
+    );
   }
 
   public function checkin(CheckinGuestRequest $request): JsonResponse
@@ -60,9 +57,9 @@ class DeviceLockController extends Controller
     return $this->sendResponse(new DeviceLockResource($lock), 'Check-in completado exitosamente.', 201);
   }
 
-  public function expel(ExpelGuestRequest $request, ModerationService $moderationService): JsonResponse
+  public function expel(ExpelGuestRequest $request): JsonResponse
   {
-    $tables = $moderationService->expelGuest($request->toDto());
+    $tables = $this->service->expelGuest($request->toDto());
     return $this->sendResponse(
       EventTableResource::collection($tables),
       'Invitado expulsado exitosamente.',

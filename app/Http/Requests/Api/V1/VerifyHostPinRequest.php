@@ -30,4 +30,9 @@ class VerifyHostPinRequest extends FormRequest
       'pin' => ['required', 'string', 'max:32'],
     ];
   }
+
+  public function toPin(): string
+  {
+    return (string) $this->input('pin');
+  }
 }

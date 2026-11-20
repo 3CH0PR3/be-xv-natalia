@@ -22,7 +22,8 @@ class ResolveDeviceLockAction
     [$lock, $restoredByFp] = $this->findExistingLock(
       $event,
       $data->deviceId,
-      $candidates
+      $candidates,
+      $data->hardwareSummary
     );
 
     if (!$lock) {
@@ -46,8 +47,12 @@ class ResolveDeviceLockAction
   }
 
   /** @return array{0: ?DeviceLock, 1: bool} */
-  public function findExistingLock(Event $event, string $deviceId, array $candidates): array
-  {
+  public function findExistingLock(
+    Event $event,
+    string $deviceId,
+    array $candidates,
+    ?array $hardwareSummary = null
+  ): array {
     $byDevice = $deviceId !== ''
       ? DeviceLock::with('table')
         ->forEvent($event->id)
@@ -78,6 +83,22 @@ class ResolveDeviceLockAction
 
     if ($byHwFp) {
       return [$byHwFp, true];
+    }
+
+    $metrics = trim((string) ($hardwareSummary['metrics'] ?? ''));
+    $gpu = trim((string) ($hardwareSummary['gpu'] ?? ''));
+    $hasHardwareCriteria = $metrics !== '' && $gpu !== '';
+
+    $byHardware = $hasHardwareCriteria
+      ? DeviceLock::with('table')
+        ->forEvent($event->id)
+        ->where('hardware_summary->metrics', $metrics)
+        ->where('hardware_summary->gpu', $gpu)
+        ->first()
+      : null;
+
+    if ($byHardware) {
+      return [$byHardware, true];
     }
 
     return [null, false];

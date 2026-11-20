@@ -2,6 +2,7 @@
 
 namespace App\Actions\Memory;
 
+use App\DTOs\Memory\IncrementShareData;
 use App\Jobs\ProcessShareJob;
 use App\Models\DeviceLock;
 use App\Models\Memory;
@@ -11,20 +12,24 @@ use Illuminate\Support\Facades\DB;
 class IncrementMemoryShareAction
 {
   public function execute(
-    string $externalId,
+    IncrementShareData|string $data,
     ?string $actorKey = null,
     ?string $deviceId = null,
     ?int $deviceLockId = null
   ): Memory {
-    return DB::transaction(function () use ($externalId, $actorKey, $deviceId, $deviceLockId): Memory {
+    $dto = $data instanceof IncrementShareData
+      ? $data
+      : new IncrementShareData($data, $actorKey, $deviceId, $deviceLockId);
+
+    return DB::transaction(function () use ($dto): Memory {
       $memory = Memory::with('event')
-        ->where('external_id', $externalId)
+        ->where('external_id', $dto->externalId)
         ->lockForUpdate()
         ->firstOrFail();
 
-      $cleanActorKey = trim((string) $actorKey);
-      $cleanDeviceId = trim((string) $deviceId);
-      $resolvedLockId = $deviceLockId;
+      $cleanActorKey = trim((string) $dto->actorKey);
+      $cleanDeviceId = trim((string) $dto->deviceId);
+      $resolvedLockId = $dto->deviceLockId;
 
       $hasOwnerCredential = ($cleanActorKey !== '' || $cleanDeviceId !== '');
       if (!$resolvedLockId && $hasOwnerCredential) {

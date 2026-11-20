@@ -53,7 +53,8 @@ class CheckinGuestAction
       [$existingLock] = $this->resolveLock->findExistingLock(
         $event,
         $data->deviceId,
-        $data->candidateFingerprints
+        $data->candidateFingerprints,
+        $data->hardwareSummary
       );
 
       if ($existingLock && !$existingLock->belongsToTable($lockedTable->id)) {

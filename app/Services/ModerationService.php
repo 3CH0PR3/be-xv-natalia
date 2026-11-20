@@ -5,17 +5,21 @@ namespace App\Services;
 use App\Actions\DeviceLock\ExpelGuestAction;
 use App\Actions\Memory\UpdateMemoryStatusAction;
 use App\Actions\Moderation\BuildModerationMetricsAction;
+use App\Actions\Moderation\ChangeHostPinAction;
 use App\Actions\Moderation\ExportApprovedAlbumZipAction;
 use App\Actions\Moderation\PurgeEventDataAction;
+use App\Actions\Moderation\VerifyHostPinAction;
 use App\DTOs\DeviceLock\ExpelGuestData;
+use App\DTOs\Moderation\ChangeHostPinData;
 use App\Models\Event;
 use App\Models\Memory;
-use App\Models\User;
 use Illuminate\Support\Collection;
 
 class ModerationService
 {
   public function __construct(
+    private readonly VerifyHostPinAction $verifyPin,
+    private readonly ChangeHostPinAction $changePin,
     private readonly BuildModerationMetricsAction $buildMetrics,
     private readonly UpdateMemoryStatusAction $updateStatus,
     private readonly ExpelGuestAction $expelGuest,
@@ -25,7 +29,12 @@ class ModerationService
 
   public function verifyHostPin(string $pin): bool
   {
-    return User::verifyHostPin($pin);
+    return $this->verifyPin->execute($pin);
+  }
+
+  public function changePin(ChangeHostPinData|string $currentPin, ?string $newPin = null): bool
+  {
+    return $this->changePin->execute($currentPin, $newPin);
   }
 
   public function getMetrics(string $eventCode): array

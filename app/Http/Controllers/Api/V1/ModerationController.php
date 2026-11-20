@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Actions\Moderation\ChangeHostPinAction;
 use App\DTOs\Shared\ViewerContextData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ChangeHostPinRequest;
@@ -29,8 +28,7 @@ class ModerationController extends Controller
 
   public function verifyPin(VerifyHostPinRequest $request): JsonResponse
   {
-    $pin = (string) ($request->input('pin') ?: ($request->input('hostPin') ?: $request->input('host_pin', '')));
-    $valid = $this->service->verifyHostPin($pin);
+    $valid = $this->service->verifyHostPin($request->toPin());
 
     if (!$valid) {
       return $this->sendError('PIN de anfitriona incorrecto.', [], Response::HTTP_FORBIDDEN);
@@ -85,12 +83,9 @@ class ModerationController extends Controller
     return $this->sendResponse($result, 'Datos del evento purgados exitosamente.', 200);
   }
 
-  public function changePin(ChangeHostPinRequest $request, ChangeHostPinAction $action): JsonResponse
+  public function changePin(ChangeHostPinRequest $request): JsonResponse
   {
-    $currentPin = (string) $request->input('currentPin');
-    $newPin = (string) $request->input('newPin');
-
-    $action->execute($currentPin, $newPin);
+    $this->service->changePin($request->toDto());
 
     return $this->sendResponse(['success' => true], 'PIN de anfitriona actualizado exitosamente.', 200);
   }

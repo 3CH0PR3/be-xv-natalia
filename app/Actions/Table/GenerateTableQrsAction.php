@@ -2,6 +2,7 @@
 
 namespace App\Actions\Table;
 
+use App\DTOs\Table\GenerateTableQrsData;
 use App\Events\TableOccupancyUpdated;
 use App\Models\Event;
 use App\Models\EventTable;
@@ -18,14 +19,29 @@ use Illuminate\Support\Facades\Storage;
 
 class GenerateTableQrsAction
 {
-  public function execute(Event $event, ?string $baseUrl = null, ?int $tableCount = null): Collection
-  {
-    $cleanBaseUrl = $this->resolveBaseUrl($baseUrl);
+  public function execute(
+    GenerateTableQrsData|Event $target,
+    ?string $baseUrl = null,
+    ?int $tableCount = null
+  ): Collection {
+    $event = $target instanceof GenerateTableQrsData
+      ? Event::byCode($target->eventCode)->firstOrFail()
+      : $target;
+
+    $resolvedBaseUrl = $target instanceof GenerateTableQrsData
+      ? $target->baseUrl
+      : $baseUrl;
+
+    $resolvedTableCount = $target instanceof GenerateTableQrsData
+      ? $target->tableCount
+      : $tableCount;
+
+    $cleanBaseUrl = $this->resolveBaseUrl($resolvedBaseUrl);
     $disk = Storage::disk(config('xv.media_disk', 'public'));
     $targetDir = "qrs/{$event->code}";
     $disk->makeDirectory($targetDir);
 
-    $this->syncEventTableCount($event, $tableCount);
+    $this->syncEventTableCount($event, $resolvedTableCount);
 
     $tables = EventTable::forEvent($event->id)->ordered()->get();
     $renderer = new ImageRenderer(new RendererStyle(600), new SvgImageBackEnd());

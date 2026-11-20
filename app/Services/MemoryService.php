@@ -5,10 +5,14 @@ namespace App\Services;
 use App\Actions\Memory\CreateMemoryAction;
 use App\Actions\Memory\DeleteMemoryAction;
 use App\Actions\Memory\DeleteMemoryMediaItemAction;
+use App\Actions\Memory\GetMemoryAction;
+use App\Actions\Memory\GetMemoryPreviewAction;
 use App\Actions\Memory\IncrementMemoryShareAction;
+use App\Actions\Memory\ListMemoriesAction;
 use App\Actions\Memory\ToggleMemoryReactionAction;
 use App\Actions\Memory\UpdateMemoryCaptionAction;
 use App\DTOs\Memory\CreateMemoryData;
+use App\DTOs\Memory\IncrementShareData;
 use App\DTOs\Memory\MemoryFilterData;
 use App\DTOs\Memory\ToggleReactionData;
 use App\DTOs\Memory\UpdateCaptionData;
@@ -20,6 +24,9 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class MemoryService
 {
   public function __construct(
+    private readonly ListMemoriesAction $listMemories,
+    private readonly GetMemoryAction $getMemory,
+    private readonly GetMemoryPreviewAction $getMemoryPreview,
     private readonly CreateMemoryAction $createMemory,
     private readonly UpdateMemoryCaptionAction $updateCaption,
     private readonly DeleteMemoryAction $deleteMemory,
@@ -30,23 +37,20 @@ class MemoryService
 
   public function listMemories(MemoryFilterData $filter, ViewerContextData $viewer): LengthAwarePaginator
   {
-    $event = Event::byCode($filter->eventCode)->firstOrFail();
-
-    return Memory::forEvent($event->id)
-      ->withWallRelations($viewer->actorKey, $viewer->deviceId)
-      ->filterStatus($filter->status, $filter->includeAllStatuses)
-      ->when($filter->ownerDeviceId, fn ($q) => $q->ownedBy($filter->ownerDeviceId))
-      ->filterCategory($filter->category)
-      ->search($filter->search)
-      ->newestFirst()
-      ->paginate($filter->perPage);
+    return $this->listMemories->execute($filter, $viewer);
   }
 
   public function getMemory(string $externalId, ViewerContextData $viewer): Memory
   {
-    return Memory::withWallRelations($viewer->actorKey, $viewer->deviceId)
-      ->where('external_id', $externalId)
-      ->firstOrFail();
+    return $this->getMemory->execute($externalId, $viewer);
+  }
+
+  /**
+   * @return array{external_id: string, title: string, description: string, image_url: string}
+   */
+  public function getMemoryPreview(string $externalId): array
+  {
+    return $this->getMemoryPreview->execute($externalId);
   }
 
   public function publishMemory(CreateMemoryData $data): Memory
@@ -76,11 +80,15 @@ class MemoryService
   }
 
   public function incrementShare(
-    string $externalId,
+    IncrementShareData|string $data,
     ?string $actorKey = null,
     ?string $deviceId = null,
     ?int $deviceLockId = null
   ): Memory {
-    return $this->incrementShare->execute($externalId, $actorKey, $deviceId, $deviceLockId);
+    $dto = $data instanceof IncrementShareData
+      ? $data
+      : new IncrementShareData($data, $actorKey, $deviceId, $deviceLockId);
+
+    return $this->incrementShare->execute($dto);
   }
 }

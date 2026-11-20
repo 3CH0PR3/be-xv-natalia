@@ -124,6 +124,39 @@ class TableAndCheckinTest extends TestCase
       ->assertJsonPath('data.restoredByFingerprint', true);
   }
 
+  public function test_can_resolve_device_lock_via_hardware_summary(): void
+  {
+    $hardwareSummary = [
+      'metrics' => 'os:android|scr:393x873|dpr:2750|depth:24:24|cores:8|mem:8|touch:5|tz:America/Caracas',
+      'gpu' => 'v:arm|r:mali-g68 mc4|t:16384:16384:16384|u:16:32:1024:1024|p:23:23',
+    ];
+
+    $checkinPayload = [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Mateo Gomez',
+      'deviceId' => 'device-mateo-browser',
+      'hwFingerprint' => 'fphwv2_mateo_browser_fp',
+      'candidateFingerprints' => ['fphwv2_mateo_browser_fp'],
+      'hardwareSummary' => $hardwareSummary,
+    ];
+    $this->postJson('/api/v1/checkin', $checkinPayload)->assertStatus(201);
+
+    // Multi-context test: APK opens on the same phone with isolated storage (new deviceId, no matching candidates)
+    // but with identical hardware metrics & GPU WebGL profile
+    $resolveFromApkPayload = [
+      'eventCode' => 'XV-NATALIA',
+      'deviceId' => 'device-mateo-apk-isolated-id',
+      'candidateFingerprints' => ['fphwv2_mateo_apk_isolated_anchor'],
+      'hardwareSummary' => $hardwareSummary,
+    ];
+
+    $res = $this->postJson('/api/v1/device-locks/resolve', $resolveFromApkPayload);
+    $res->assertStatus(200)
+      ->assertJsonPath('data.lock.guestName', 'Mateo Gomez')
+      ->assertJsonPath('data.restoredByFingerprint', true);
+  }
+
   public function test_can_generate_table_qrs(): void
   {
     $response = $this->withHeaders([
