@@ -21,12 +21,14 @@ class EventTableResource extends JsonResource
       ])->values()->all()
       : [];
 
-    $resolveStorageUrl = static function (?string $path) use ($request): string {
+    $resolveStorageUrl = static function (?string $path, ?string $token) use ($request): string {
       if (!$path) {
         return '';
       }
       $base = $request->getSchemeAndHttpHost();
-      return rtrim($base, '/') . '/storage/' . ltrim($path, '/');
+      $url = rtrim($base, '/') . '/storage/' . ltrim($path, '/');
+      $suffix = $token ? '?v=' . substr($token, 4, 8) : '';
+      return $url . $suffix;
     };
 
     return [
@@ -38,8 +40,8 @@ class EventTableResource extends JsonResource
       'capacity' => min(10, (int) ($this->capacity ?: 10)),
       'guests' => $guests,
       'guestsConnected' => count($guests),
-      'qrImageUrl' => $resolveStorageUrl($this->qr_image_path),
-      'qrSvgUrl' => $resolveStorageUrl($this->qr_svg_path),
+      'qrImageUrl' => $resolveStorageUrl($this->qr_image_path, $this->qr_token),
+      'qrSvgUrl' => $resolveStorageUrl($this->qr_svg_path, $this->qr_token),
       'qrToken' => $this->qr_token ?? '',
       'accessUrl' => $this->access_url ?? '',
       'qrGeneratedAt' => $this->qr_generated_at?->toIso8601String(),
