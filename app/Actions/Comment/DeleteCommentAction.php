@@ -61,6 +61,7 @@ class DeleteCommentAction
         'deletedAt' => now()->toIso8601String(),
       ];
 
+      app(\App\Services\CommentLikeCounterService::class)->clear($comment->id);
       $comment->delete();
       $newCount = MemoryComment::where('memory_id', $memory->id)->count();
 
