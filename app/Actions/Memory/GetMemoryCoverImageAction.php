@@ -36,7 +36,8 @@ class GetMemoryCoverImageAction
     }
 
     $fullPath = $disk->path($relativeCandidate);
-    $mime = $firstMedia->mime_type ?: (mime_content_type($fullPath) ?: 'image/jpeg');
+    $detectedMime = is_file($fullPath) ? (mime_content_type($fullPath) ?: null) : null;
+    $mime = $isVideoWithPoster ? ($detectedMime ?: 'image/jpeg') : ($detectedMime ?: ($firstMedia->mime_type ?: 'image/jpeg'));
 
     return response()->file($fullPath, [
       'Content-Type' => $mime,

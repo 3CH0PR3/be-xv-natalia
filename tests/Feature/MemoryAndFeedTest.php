@@ -236,4 +236,76 @@ class MemoryAndFeedTest extends TestCase
     $getCommFallback->assertStatus(200)
       ->assertJsonPath('data.0.author', 'Andres Original');
   }
+
+  public function test_rejects_gif_and_documents_and_accepts_valid_media(): void
+  {
+    // Checkin guest
+    $this->postJson('/api/v1/checkin', [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Claudia Mendoza',
+      'deviceId' => 'dev-claudia-file',
+      'actorKey' => 'actor-claudia-file',
+    ])->assertStatus(201);
+
+    // 1. Intentar subir un GIF -> Debe fallar con 422
+    $gifFile = \Illuminate\Http\UploadedFile::fake()->create('animated.gif', 500, 'image/gif');
+    $resGif = $this->withHeaders(['X-Device-Id' => 'dev-claudia-file'])
+      ->postJson('/api/v1/memories', [
+        'eventCode' => 'XV-NATALIA',
+        'guestName' => 'Claudia Mendoza',
+        'tableCode' => 'Mesa 01 · Principal',
+        'ownerDeviceId' => 'dev-claudia-file',
+        'ownerActorKey' => 'actor-claudia-file',
+        'caption' => 'Mi gif animado',
+        'files' => [$gifFile],
+      ]);
+    $resGif->assertStatus(422)
+      ->assertJsonValidationErrors(['files.0']);
+
+    // 2. Intentar subir un PDF -> Debe fallar con 422
+    $pdfFile = \Illuminate\Http\UploadedFile::fake()->create('documento.pdf', 300, 'application/pdf');
+    $resPdf = $this->withHeaders(['X-Device-Id' => 'dev-claudia-file'])
+      ->postJson('/api/v1/memories', [
+        'eventCode' => 'XV-NATALIA',
+        'guestName' => 'Claudia Mendoza',
+        'tableCode' => 'Mesa 01 · Principal',
+        'ownerDeviceId' => 'dev-claudia-file',
+        'ownerActorKey' => 'actor-claudia-file',
+        'caption' => 'Mi pdf',
+        'files' => [$pdfFile],
+      ]);
+    $resPdf->assertStatus(422)
+      ->assertJsonValidationErrors(['files.0']);
+
+    // 3. Intentar subir un archivo Excel -> Debe fallar con 422
+    $excelFile = \Illuminate\Http\UploadedFile::fake()->create('invitados.xlsx', 100, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    $resExcel = $this->withHeaders(['X-Device-Id' => 'dev-claudia-file'])
+      ->postJson('/api/v1/memories', [
+        'eventCode' => 'XV-NATALIA',
+        'guestName' => 'Claudia Mendoza',
+        'tableCode' => 'Mesa 01 · Principal',
+        'ownerDeviceId' => 'dev-claudia-file',
+        'ownerActorKey' => 'actor-claudia-file',
+        'caption' => 'Mi excel',
+        'files' => [$excelFile],
+      ]);
+    $resExcel->assertStatus(422)
+      ->assertJsonValidationErrors(['files.0']);
+
+    // 4. Subir imagen válida (ej. webp / png / jpg) -> Debe aceptarse con 201
+    $webpFile = \Illuminate\Http\UploadedFile::fake()->create('foto_real.webp', 800, 'image/webp');
+    $resOk = $this->withHeaders(['X-Device-Id' => 'dev-claudia-file'])
+      ->postJson('/api/v1/memories', [
+        'eventCode' => 'XV-NATALIA',
+        'guestName' => 'Claudia Mendoza',
+        'tableCode' => 'Mesa 01 · Principal',
+        'ownerDeviceId' => 'dev-claudia-file',
+        'ownerActorKey' => 'actor-claudia-file',
+        'caption' => 'Foto en alta calidad',
+        'files' => [$webpFile],
+      ]);
+    $resOk->assertStatus(201)
+      ->assertJsonPath('data.guestName', 'Claudia Mendoza');
+  }
 }

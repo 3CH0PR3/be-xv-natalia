@@ -28,8 +28,63 @@ class StoreMemoryRequest extends FormRequest
       'files' => ['required', 'array', 'min:1', 'max:30'],
       'files.*' => [
         'file',
-        'mimetypes:image/jpeg,image/png,image/webp,image/heic,image/heif,image/x-heic,video/mp4,video/webm,video/quicktime,video/3gpp,video/x-msvideo,video/x-matroska,application/octet-stream',
         'max:102400',
+        static function (string $attribute, mixed $value, \Closure $fail): void {
+          if (!($value instanceof \Illuminate\Http\UploadedFile)) {
+            $fail('El archivo subido no es válido.');
+            return;
+          }
+
+          $extension = strtolower((string) ($value->getClientOriginalExtension() ?: ($value->extension() ?: '')));
+          $mime = strtolower((string) ($value->getMimeType() ?: 'application/octet-stream'));
+
+          // 1. Prohibir GIFs explícitamente tanto por MIME como por extensión
+          if ($mime === 'image/gif' || $extension === 'gif') {
+            $fail('El formato GIF no está permitido. Solo se aceptan fotografías y videos.');
+            return;
+          }
+
+          // 2. Prohibir documentos, PDFs, hojas de cálculo, archivos ejecutables y comprimidos
+          $forbiddenExtensions = [
+            'pdf', 'doc', 'docx', 'odt', 'rtf', 'txt',
+            'xls', 'xlsx', 'csv', 'ods',
+            'ppt', 'pptx', 'odp',
+            'zip', 'rar', '7z', 'tar', 'gz', 'bz2',
+            'exe', 'bat', 'cmd', 'sh', 'bin', 'msi',
+            'php', 'js', 'html', 'htm', 'css', 'json', 'xml',
+          ];
+          if (in_array($extension, $forbiddenExtensions, true)) {
+            $fail('Solo se permiten fotos y videos. No se permiten documentos, hojas de cálculo ni archivos comprimidos.');
+            return;
+          }
+
+          if (
+            str_starts_with($mime, 'application/pdf') ||
+            str_starts_with($mime, 'application/msword') ||
+            str_starts_with($mime, 'application/vnd.') ||
+            str_starts_with($mime, 'text/')
+          ) {
+            $fail('Solo se permiten fotos y videos. No se permiten documentos ni hojas de cálculo.');
+            return;
+          }
+
+          // 3. Extensiones y MIMEs válidos para fotografías y videos
+          $validImageExtensions = [
+            'jpg', 'jpeg', 'jfif', 'pjpeg', 'pjp', 'png', 'apng', 'webp', 'avif',
+            'heic', 'heif', 'bmp', 'svg', 'tif', 'tiff', 'ico', 'cur', 'jxl',
+            'dng', 'raw', 'cr2', 'nef', 'arw',
+          ];
+          $validVideoExtensions = [
+            'mp4', 'mov', 'webm', '3gp', '3g2', 'm4v', 'mkv', 'avi', 'ogv', 'ogg', 'ts', 'mts', 'm2ts', 'wmv', 'flv',
+          ];
+
+          $isAllowedMime = str_starts_with($mime, 'image/') || str_starts_with($mime, 'video/');
+          $isAllowedExtension = in_array($extension, $validImageExtensions, true) || in_array($extension, $validVideoExtensions, true);
+
+          if (!$isAllowedMime && !$isAllowedExtension) {
+            $fail('El tipo de archivo no es compatible. Sube una fotografía o video.');
+          }
+        },
       ],
       'posters' => ['nullable', 'array'],
       'posters.*' => ['nullable', 'file', 'max:5120'],
