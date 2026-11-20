@@ -33,5 +33,19 @@ class AppReleaseTest extends TestCase
     $listRes->assertStatus(200)
       ->assertJsonCount(1, 'data')
       ->assertJsonPath('data.0.version', '1.4.17');
+
+    // Test syncing 55 releases passes validation (> 50 limit)
+    $manyReleases = [];
+    for ($i = 1; $i <= 55; $i++) {
+      $manyReleases[] = [
+        'version' => "1.0.{$i}",
+        'type' => 'patch',
+        'title' => "Parche {$i}",
+      ];
+    }
+    $manySyncRes = $this->postJson('/api/v1/releases/sync', [
+      'releases' => $manyReleases,
+    ]);
+    $manySyncRes->assertStatus(200);
   }
 }

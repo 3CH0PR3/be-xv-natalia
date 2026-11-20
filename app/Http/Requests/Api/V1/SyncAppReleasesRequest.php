@@ -17,7 +17,7 @@ class SyncAppReleasesRequest extends FormRequest
     return [
       'buildId' => ['nullable', 'string', 'max:128'],
       'builtAtMs' => ['nullable', 'integer'],
-      'releases' => ['required', 'array', 'max:50'],
+      'releases' => ['required', 'array', 'max:250'],
       'releases.*.version' => ['required', 'string', 'max:40'],
       'releases.*.type' => ['nullable', 'in:major,minor,patch'],
       'releases.*.date' => ['nullable', 'string', 'max:60'],
