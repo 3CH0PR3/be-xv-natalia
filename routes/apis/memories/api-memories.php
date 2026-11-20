@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/memories', [MemoryController::class, 'index']);
 Route::get('/memories/{externalId}', [MemoryController::class, 'show']);
 Route::get('/memories/{externalId}/preview', [MemoryController::class, 'preview']);
+Route::get('/memories/{externalId}/cover-image', [MemoryController::class, 'coverImage']);
 Route::post('/memories', [MemoryController::class, 'store'])
   ->middleware(['device.lock', 'throttle:api.memories.store']);
 Route::patch('/memories/{externalId}/caption', [MemoryController::class, 'updateCaption'])

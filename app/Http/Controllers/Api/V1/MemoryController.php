@@ -16,6 +16,7 @@ use App\Services\MemoryService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class MemoryController extends Controller
@@ -53,6 +54,11 @@ class MemoryController extends Controller
     return (new MemoryPreviewResource($preview))
       ->response()
       ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+  }
+
+  public function coverImage(string $externalId): BinaryFileResponse
+  {
+    return $this->service->getMemoryCoverImage($externalId);
   }
 
   public function store(StoreMemoryRequest $request): JsonResponse

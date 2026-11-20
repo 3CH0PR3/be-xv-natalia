@@ -50,6 +50,16 @@ class MemoryPreviewTest extends TestCase
     ]);
 
     $this->assertNotEmpty($response->json('image_url'));
+
+    $coverResponse = $this->get("/api/v1/memories/{$externalId}/cover-image");
+    $coverResponse->assertStatus(200);
+    $coverResponse->assertHeader('Access-Control-Allow-Origin', '*');
+  }
+
+  public function test_cover_image_endpoint_returns_404_for_non_existent_memory(): void
+  {
+    $response = $this->get('/api/v1/memories/xv-nat-non-existent/cover-image');
+    $response->assertStatus(404);
   }
 
   public function test_preview_endpoint_returns_404_for_non_existent_memory(): void

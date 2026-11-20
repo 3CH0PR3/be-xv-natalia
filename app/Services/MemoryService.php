@@ -6,6 +6,7 @@ use App\Actions\Memory\CreateMemoryAction;
 use App\Actions\Memory\DeleteMemoryAction;
 use App\Actions\Memory\DeleteMemoryMediaItemAction;
 use App\Actions\Memory\GetMemoryAction;
+use App\Actions\Memory\GetMemoryCoverImageAction;
 use App\Actions\Memory\GetMemoryPreviewAction;
 use App\Actions\Memory\IncrementMemoryShareAction;
 use App\Actions\Memory\ListMemoriesAction;
@@ -20,6 +21,7 @@ use App\DTOs\Shared\ViewerContextData;
 use App\Models\Event;
 use App\Models\Memory;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MemoryService
 {
@@ -27,6 +29,7 @@ class MemoryService
     private readonly ListMemoriesAction $listMemories,
     private readonly GetMemoryAction $getMemory,
     private readonly GetMemoryPreviewAction $getMemoryPreview,
+    private readonly GetMemoryCoverImageAction $getCoverImage,
     private readonly CreateMemoryAction $createMemory,
     private readonly UpdateMemoryCaptionAction $updateCaption,
     private readonly DeleteMemoryAction $deleteMemory,
@@ -51,6 +54,11 @@ class MemoryService
   public function getMemoryPreview(string $externalId): array
   {
     return $this->getMemoryPreview->execute($externalId);
+  }
+
+  public function getMemoryCoverImage(string $externalId): BinaryFileResponse
+  {
+    return $this->getCoverImage->execute($externalId);
   }
 
   public function publishMemory(CreateMemoryData $data): Memory
