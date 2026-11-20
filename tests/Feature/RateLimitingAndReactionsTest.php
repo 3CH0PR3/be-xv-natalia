@@ -140,7 +140,7 @@ class RateLimitingAndReactionsTest extends TestCase
     $this->postJson('/api/v1/checkin', [
       'eventCode' => 'XV-NATALIA',
       'tableCode' => $table->code,
-      'guestName' => 'Broadcaster',
+      'guestName' => 'Broadcaster Guest',
       'deviceId' => 'dev-broadcast-id-99',
       'actorKey' => 'actor-broadcast-key-99',
     ])->assertStatus(201);
@@ -149,7 +149,7 @@ class RateLimitingAndReactionsTest extends TestCase
       'external_id' => 'mem-broadcast-1',
       'event_id' => $event->id,
       'event_table_id' => $table->id,
-      'guest_name' => 'Broadcaster',
+      'guest_name' => 'Broadcaster Guest',
       'table_code' => $table->code,
       'media_type' => 'image',
       'timestamp_ms' => now()->getTimestampMs(),

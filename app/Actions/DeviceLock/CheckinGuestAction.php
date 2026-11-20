@@ -45,7 +45,16 @@ class CheckinGuestAction
       );
     }
 
-    $nameSlug = DeviceLock::normalizeSlug($data->guestName);
+    $cleanName = trim((string) $data->guestName);
+    if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/u', $cleanName) || count(preg_split('/\s+/', $cleanName, -1, PREG_SPLIT_NO_EMPTY)) < 2) {
+      throw new DomainRuleException(
+        'INVALID_GUEST_NAME',
+        'Debe ser un nombre real con nombre y apellido (solo letras, sin números ni símbolos).',
+        422
+      );
+    }
+
+    $nameSlug = DeviceLock::normalizeSlug($cleanName);
 
     return DB::transaction(function () use ($event, $targetTable, $data, $nameSlug): DeviceLock {
       $lockedTable = EventTable::whereKey($targetTable->id)->lockForUpdate()->firstOrFail();
@@ -117,7 +126,7 @@ class CheckinGuestAction
           $tables = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
           $payload = EventTableResource::collection($tables)->resolve();
           ProcessTableOccupancyJob::dispatch($event->id, $payload);
-          broadcast(new TablesUpdated($event->code, $payload))->toOthers();
+          broadcast(new TablesUpdated($event->code, $payload));
         } catch (\Throwable $e) {
           report($e);
         }

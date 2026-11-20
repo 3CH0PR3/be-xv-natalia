@@ -174,4 +174,70 @@ class TableAndCheckinTest extends TestCase
       'qr_image_path' => 'qrs/XV-NATALIA/qr-mesa-01.png',
     ]);
   }
+
+  public function test_checkin_validates_strict_name_rules(): void
+  {
+    $basePayload = [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'deviceId' => 'device-test-names',
+      'hwFingerprint' => 'v2_fp_names_test',
+    ];
+
+    // Single name (must be rejected)
+    $this->postJson('/api/v1/checkin', array_merge($basePayload, ['guestName' => 'Carlos']))
+      ->assertStatus(422)
+      ->assertJsonValidationErrors('guestName');
+
+    // Name with numbers (must be rejected)
+    $this->postJson('/api/v1/checkin', array_merge($basePayload, ['guestName' => 'Carlos123 Mendoza']))
+      ->assertStatus(422)
+      ->assertJsonValidationErrors('guestName');
+
+    // Name with emoji (must be rejected)
+    $this->postJson('/api/v1/checkin', array_merge($basePayload, ['guestName' => 'Carlos Mendoza 🎉']))
+      ->assertStatus(422)
+      ->assertJsonValidationErrors('guestName');
+
+    // Name with symbols/asterisks (must be rejected)
+    $this->postJson('/api/v1/checkin', array_merge($basePayload, ['guestName' => 'Carlos * Mendoza']))
+      ->assertStatus(422)
+      ->assertJsonValidationErrors('guestName');
+
+    // Valid full name with accents (must succeed)
+    $this->postJson('/api/v1/checkin', array_merge($basePayload, ['guestName' => 'Andrés Peña Gómez']))
+      ->assertStatus(201)
+      ->assertJsonPath('data.guestName', 'Andrés Peña Gómez');
+  }
+
+  public function test_tables_updated_event_broadcasts_guests_list(): void
+  {
+    $tableData = [
+      'id' => 'mesa-01',
+      'number' => '01',
+      'code' => 'Mesa 01 · Principal',
+      'zone' => 'Tarima de Honor',
+      'centerpiece' => 'Rosas blancas',
+      'capacity' => 10,
+      'guests' => [
+        [
+          'deviceId' => 'dev-1',
+          'guestName' => 'Juan Perez',
+          'joinedAt' => now()->toIso8601String(),
+        ],
+      ],
+      'guestsConnected' => 1,
+    ];
+
+    $event = new \App\Events\TablesUpdated('XV-NATALIA', [$tableData]);
+    $broadcastWith = $event->broadcastWith();
+
+    $this->assertArrayHasKey('tables', $broadcastWith);
+    $this->assertCount(1, $broadcastWith['tables']);
+    $this->assertSame('mesa-01', $broadcastWith['tables'][0]['id']);
+    $this->assertArrayHasKey('guests', $broadcastWith['tables'][0]);
+    $this->assertCount(1, $broadcastWith['tables'][0]['guests']);
+    $this->assertSame('Juan Perez', $broadcastWith['tables'][0]['guests'][0]['guestName']);
+    $this->assertSame(1, $broadcastWith['tables'][0]['guestsConnected']);
+  }
 }

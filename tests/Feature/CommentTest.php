@@ -25,7 +25,7 @@ class CommentTest extends TestCase
     $this->postJson('/api/v1/checkin', [
       'eventCode' => 'XV-NATALIA',
       'tableCode' => 'Mesa 01 · Principal',
-      'guestName' => 'Ana',
+      'guestName' => 'Ana Gomez',
       'deviceId' => 'dev-ana',
       'actorKey' => 'actor-ana',
     ])->assertStatus(201);
@@ -33,7 +33,7 @@ class CommentTest extends TestCase
     $file = UploadedFile::fake()->image('photo.jpg');
     $memRes = $this->withHeaders(['X-Device-Id' => 'dev-ana'])
       ->postJson('/api/v1/memories', [
-        'guestName' => 'Ana',
+        'guestName' => 'Ana Gomez',
         'tableCode' => 'Mesa 01 · Principal',
         'ownerDeviceId' => 'dev-ana',
         'ownerActorKey' => 'actor-ana',
@@ -46,7 +46,7 @@ class CommentTest extends TestCase
     $this->postJson('/api/v1/checkin', [
       'eventCode' => 'XV-NATALIA',
       'tableCode' => 'Mesa 02 · Orquídea',
-      'guestName' => 'Pedro',
+      'guestName' => 'Pedro Gomez',
       'deviceId' => 'dev-pedro',
       'actorKey' => 'actor-pedro',
     ])->assertStatus(201);
@@ -54,14 +54,14 @@ class CommentTest extends TestCase
     // Create comment without device lock header/active session -> verified working with dev-pedro
     $commentRes = $this->withHeaders(['X-Device-Id' => 'dev-pedro', 'X-Actor-Key' => 'actor-pedro'])
       ->postJson("/api/v1/memories/{$memoryId}/comments", [
-        'author' => 'Pedro',
+        'author' => 'Pedro Gomez',
         'table' => 'Mesa 02 · Orquídea',
         'text' => 'Qué hermosa foto!',
         'ownerDeviceId' => 'dev-pedro',
         'ownerActorKey' => 'actor-pedro',
       ]);
     $commentRes->assertStatus(201)
-      ->assertJsonPath('data.author', 'Pedro')
+      ->assertJsonPath('data.author', 'Pedro Gomez')
       ->assertJsonPath('data.text', 'Qué hermosa foto!');
 
     $commentId = $commentRes->json('data.id');
@@ -114,18 +114,18 @@ class CommentTest extends TestCase
     $this->postJson('/api/v1/checkin', [
       'eventCode' => 'XV-NATALIA',
       'tableCode' => 'Mesa 01 · Principal',
-      'guestName' => 'Andres',
+      'guestName' => 'Andres Perez',
       'deviceId' => 'dev-andres-apk',
-      'actorKey' => 'mesa-01-principal__andres',
+      'actorKey' => 'mesa-01-principal__andres-perez',
     ])->assertStatus(201);
 
     $file = UploadedFile::fake()->image('photo.jpg');
     $memRes = $this->withHeaders(['X-Device-Id' => 'dev-andres-apk'])
       ->postJson('/api/v1/memories', [
-        'guestName' => 'Andres',
+        'guestName' => 'Andres Perez',
         'tableCode' => 'Mesa 01 · Principal',
         'ownerDeviceId' => 'dev-andres-apk',
-        'ownerActorKey' => 'mesa-01-principal__andres',
+        'ownerActorKey' => 'mesa-01-principal__andres-perez',
         'files' => [$file],
       ]);
     $memoryId = $memRes->json('data.id');
@@ -133,17 +133,17 @@ class CommentTest extends TestCase
     // Andres comments from browser with a new deviceId but matching actorKey
     $commentRes = $this->withHeaders([
       'X-Device-Id' => 'dev-andres-browser-new-id',
-      'X-Actor-Key' => 'mesa-01-principal__andres',
+      'X-Actor-Key' => 'mesa-01-principal__andres-perez',
     ])->postJson("/api/v1/memories/{$memoryId}/comments", [
-      'author' => 'Andres',
+      'author' => 'Andres Perez',
       'table' => 'Mesa 01 · Principal',
       'text' => 'Comentario desde mi navegador!',
       'deviceId' => 'dev-andres-browser-new-id',
-      'actorKey' => 'mesa-01-principal__andres',
+      'actorKey' => 'mesa-01-principal__andres-perez',
     ]);
 
     $commentRes->assertStatus(201)
-      ->assertJsonPath('data.author', 'Andres');
+      ->assertJsonPath('data.author', 'Andres Perez');
   }
 
   public function test_multiple_comments_consecutive_likes_and_unlikes_maintain_exact_count(): void
@@ -151,7 +151,7 @@ class CommentTest extends TestCase
     $this->postJson('/api/v1/checkin', [
       'eventCode' => 'XV-NATALIA',
       'tableCode' => 'Mesa 01 · Principal',
-      'guestName' => 'Host',
+      'guestName' => 'Host Invitado',
       'deviceId' => 'dev-host',
       'actorKey' => 'actor-host',
     ])->assertStatus(201);
@@ -159,7 +159,7 @@ class CommentTest extends TestCase
     $file = UploadedFile::fake()->image('test.jpg');
     $memRes = $this->withHeaders(['X-Device-Id' => 'dev-host'])
       ->postJson('/api/v1/memories', [
-        'guestName' => 'Host',
+        'guestName' => 'Host Invitado',
         'tableCode' => 'Mesa 01 · Principal',
         'ownerDeviceId' => 'dev-host',
         'ownerActorKey' => 'actor-host',
@@ -215,7 +215,7 @@ class CommentTest extends TestCase
     $this->postJson('/api/v1/checkin', [
       'eventCode' => 'XV-NATALIA',
       'tableCode' => 'Mesa 02 · Orquídea',
-      'guestName' => 'Invitado 2',
+      'guestName' => 'Invitado Segundo',
       'deviceId' => 'dev-user2',
       'actorKey' => 'actor-user2',
     ])->assertStatus(201);

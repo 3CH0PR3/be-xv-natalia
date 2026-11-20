@@ -19,7 +19,34 @@ class CheckinGuestRequest extends FormRequest
       'tableCode' => ['required', 'string', 'max:80'],
       'qrToken' => ['nullable', 'string', 'max:128'],
       'token' => ['nullable', 'string', 'max:128'],
-      'guestName' => ['required', 'string', 'min:1', 'max:80'],
+      'guestName' => [
+        'required',
+        'string',
+        'min:3',
+        'max:80',
+        function ($attribute, $value, $fail) {
+          $clean = trim((string) $value);
+          if ($clean === '') {
+            $fail('Debes ingresar tu nombre y apellido.');
+            return;
+          }
+          if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/u', $clean)) {
+            $fail('Debe ser un nombre real (solo letras, sin números, emojis ni símbolos).');
+            return;
+          }
+          $parts = preg_split('/\s+/', $clean, -1, PREG_SPLIT_NO_EMPTY);
+          if (count($parts) < 2) {
+            $fail('Debes ingresar al menos nombre y apellido (mínimo dos palabras).');
+            return;
+          }
+          foreach ($parts as $part) {
+            if (mb_strlen($part, 'UTF-8') < 2) {
+              $fail('Cada parte del nombre debe tener al menos 2 letras.');
+              return;
+            }
+          }
+        },
+      ],
       'deviceId' => ['required', 'string', 'max:128'],
       'hwFingerprint' => ['nullable', 'string', 'max:128'],
       'candidateFingerprints' => ['nullable', 'array', 'max:10'],
