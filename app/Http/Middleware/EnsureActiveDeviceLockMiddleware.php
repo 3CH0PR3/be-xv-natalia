@@ -19,25 +19,14 @@ class EnsureActiveDeviceLockMiddleware
 {
   public function handle(Request $request, Closure $next): Response
   {
-    $incomingPin = trim((string) ($request->header('X-Host-Pin')
-      ?: $request->input('hostPin')
-      ?: $request->query('host_pin')
-      ?: ''));
+    $incomingPin = $request->hostPin();
     if ($incomingPin !== '' && User::verifyHostPin($incomingPin)) {
       return $next($request);
     }
 
-    $eventCode = trim((string) ($request->query('event_code')
-      ?: $request->input('eventCode')
-      ?: config('xv.default_event_code', 'XV-NATALIA')));
-    $deviceId = trim((string) ($request->header('X-Device-Id')
-      ?: $request->input('deviceId')
-      ?: $request->input('ownerDeviceId')
-      ?: ''));
-    $actorKey = trim((string) ($request->header('X-Actor-Key')
-      ?: $request->input('actorKey')
-      ?: $request->input('ownerActorKey')
-      ?: ''));
+    $eventCode = $request->eventCode();
+    $deviceId = $request->deviceId();
+    $actorKey = $request->actorKey();
 
     if ($deviceId === '' && $actorKey === '') {
       return response()->json([

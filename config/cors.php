@@ -37,6 +37,8 @@ return [
     '/^https:\/\/.*\.xv-natalia-isabela\.com$/',
     '/^https?:\/\/.*\.localhost(:\d+)?$/',
     '/^https?:\/\/.*\.trycloudflare\.com$/',
+    '/^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/',
+    '/^https?:\/\/(?:192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)(?::\d+)?$/',
   ],
 
   'allowed_headers' => ['*'],

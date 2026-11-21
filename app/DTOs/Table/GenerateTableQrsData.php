@@ -14,8 +14,7 @@ final readonly class GenerateTableQrsData
 
   public static function fromRequest(Request $request, ?string $eventCode = null): self
   {
-    $code = $eventCode
-      ?: (string) ($request->header('X-Event-Code') ?: $request->input('eventCode', config('xv.default_event_code', 'XV-NATALIA')));
+    $code = $eventCode ?: $request->eventCode();
     $baseUrl = $request->input('baseUrl') ?: ($request->header('origin') ?: $request->getSchemeAndHttpHost());
     $tableCount = $request->filled('tableCount') ? (int) $request->input('tableCount') : null;
 

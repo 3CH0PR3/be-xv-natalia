@@ -25,15 +25,15 @@ class CelebratePartyRequest extends FormRequest
 
   public function toDto(): TogglePartyCelebrateData
   {
-    $deviceId = trim((string) ($this->input('deviceId') ?: $this->header('X-Device-Id') ?: ''));
-    $actorKey = trim((string) ($this->input('actorKey') ?: $this->header('X-Actor-Key') ?: ''));
+    $deviceId = trim((string) ($this->input('deviceId') ?: $this->deviceId()));
+    $actorKey = trim((string) ($this->input('actorKey') ?: $this->actorKey()));
 
     if ($actorKey === '' && $deviceId !== '') {
       $actorKey = (string) (DeviceLock::where('device_id', $deviceId)->value('actor_key') ?: $deviceId);
     }
 
     return new TogglePartyCelebrateData(
-      eventCode: trim((string) ($this->input('eventCode') ?: config('xv.default_event_code', 'XV-NATALIA'))),
+      eventCode: $this->eventCode(),
       actorKey: $actorKey ?: 'anonymous',
       deviceId: $deviceId ?: null,
     );

@@ -25,6 +25,19 @@ class ExpelGuestRequest extends FormRequest
     ];
   }
 
+  protected function prepareForValidation(): void
+  {
+    if (!$this->has('deviceId') && $this->deviceId() !== '') {
+      $this->merge(['deviceId' => $this->deviceId()]);
+    }
+    if (!$this->has('hostPin') && $this->hostPin() !== '') {
+      $this->merge(['hostPin' => $this->hostPin()]);
+    }
+    if (!$this->has('eventCode') && $this->eventCode() !== '') {
+      $this->merge(['eventCode' => $this->eventCode()]);
+    }
+  }
+
   public function toDto(): ExpelGuestData
   {
     $rawTable = (string) (
@@ -34,9 +47,9 @@ class ExpelGuestRequest extends FormRequest
     );
 
     return new ExpelGuestData(
-      eventCode: trim((string) ($this->input('eventCode') ?: config('xv.default_event_code', 'XV-NATALIA'))),
+      eventCode: $this->eventCode(),
       tableId: trim($rawTable),
-      deviceId: $this->filled('deviceId') ? trim((string) $this->input('deviceId')) : null,
+      deviceId: $this->filled('deviceId') ? trim((string) $this->input('deviceId')) : ($this->deviceId() ?: null),
       hwFingerprint: $this->filled('hwFingerprint') ? trim((string) $this->input('hwFingerprint')) : null,
     );
   }

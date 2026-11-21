@@ -19,7 +19,10 @@ class GetMemoryCoverImageAction
       throw new NotFoundHttpException('Recuerdo no encontrado.');
     }
 
-    $firstMedia = $memory->mediaItems->first();
+    $firstMedia = $memory->mediaItems->first(function ($m) {
+      return $m->media_type === 'image' || !empty($m->poster_path);
+    }) ?: $memory->mediaItems->first();
+
     if (!$firstMedia) {
       throw new NotFoundHttpException('El recuerdo no contiene archivos multimedia.');
     }
@@ -27,17 +30,16 @@ class GetMemoryCoverImageAction
     $diskName = $firstMedia->disk ?: config('xv.media_disk', 'public');
     $disk = Storage::disk($diskName);
 
-    $relativeCandidate = $firstMedia->thumb_path ?: $firstMedia->file_path;
-    $isVideoWithPoster = $firstMedia->media_type === 'video' && !empty($firstMedia->poster_path);
-    $relativeCandidate = $isVideoWithPoster ? $firstMedia->poster_path : $relativeCandidate;
+    $isVideo = $firstMedia->media_type === 'video';
+    $relativeCandidate = $isVideo ? $firstMedia->poster_path : ($firstMedia->thumb_path ?: $firstMedia->file_path);
 
     if (!$relativeCandidate || !$disk->exists($relativeCandidate)) {
-      throw new NotFoundHttpException('Archivo de imagen no disponible en el almacenamiento.');
+      throw new NotFoundHttpException('Archivo de imagen de portada no disponible en el almacenamiento.');
     }
 
     $fullPath = $disk->path($relativeCandidate);
     $detectedMime = is_file($fullPath) ? (mime_content_type($fullPath) ?: null) : null;
-    $mime = $isVideoWithPoster ? ($detectedMime ?: 'image/jpeg') : ($detectedMime ?: ($firstMedia->mime_type ?: 'image/jpeg'));
+    $mime = $detectedMime ?: 'image/jpeg';
 
     return response()->file($fullPath, [
       'Content-Type' => $mime,

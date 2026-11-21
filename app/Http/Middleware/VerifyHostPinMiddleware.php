@@ -11,17 +11,7 @@ class VerifyHostPinMiddleware
 {
   public function handle(Request $request, Closure $next): Response
   {
-    $rawPin = (string) (
-      $request->header('X-Host-Pin')
-      ?: $request->header('Host-Pin')
-      ?: $request->header('x-host-pin')
-      ?: $request->input('pin')
-      ?: $request->input('hostPin')
-      ?: $request->input('host_pin')
-      ?: ($request->bearerToken() ?: '')
-    );
-
-    $incomingPin = trim($rawPin, " \t\n\r\0\x0B\"'");
+    $incomingPin = $request->hostPin();
 
     if ($incomingPin === '' || !User::verifyHostPin($incomingPin)) {
       return response()->json([

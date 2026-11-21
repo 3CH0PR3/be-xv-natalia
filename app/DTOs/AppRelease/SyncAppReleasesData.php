@@ -9,6 +9,7 @@ final readonly class SyncAppReleasesData
     public ?string $buildId,
     public int $builtAtMs = 0,
     public array $releases = [],
+    public string $eventCode = 'XV-NATALIA',
   ) {}
 
   public static function fromArray(array $data): self
@@ -17,6 +18,7 @@ final readonly class SyncAppReleasesData
       buildId: $data['buildId'] ?? null,
       builtAtMs: (int) ($data['builtAtMs'] ?? round(microtime(true) * 1000)),
       releases: $data['releases'] ?? [],
+      eventCode: $data['eventCode'] ?? config('xv.default_event_code', 'XV-NATALIA'),
     );
   }
 
@@ -26,6 +28,7 @@ final readonly class SyncAppReleasesData
       'buildId' => $this->buildId,
       'builtAtMs' => $this->builtAtMs,
       'releases' => $this->releases,
+      'eventCode' => $this->eventCode,
     ];
   }
 }

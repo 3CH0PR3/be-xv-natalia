@@ -24,7 +24,7 @@ class RouteServiceProvider extends ServiceProvider
   private function apiGroup(array $middleware, callable $callback): void
   {
     Route::prefix('api/v1')
-      ->middleware($middleware)
+      ->middleware(array_merge($middleware, ['device.context']))
       ->group($callback);
   }
 
@@ -36,6 +36,7 @@ class RouteServiceProvider extends ServiceProvider
     $this->mapCommentsApiRoutes();
     $this->mapModerationApiRoutes();
     $this->mapReleasesApiRoutes();
+    $this->mapProfileApiRoutes();
   }
 
   protected function mapEventApiRoutes(): void
@@ -77,6 +78,13 @@ class RouteServiceProvider extends ServiceProvider
   {
     $this->apiGroup(['api'], static function (): void {
       require base_path('routes/apis/releases/api-releases.php');
+    });
+  }
+
+  protected function mapProfileApiRoutes(): void
+  {
+    $this->apiGroup(['api'], static function (): void {
+      require base_path('routes/apis/profile/api-profile.php');
     });
   }
 }

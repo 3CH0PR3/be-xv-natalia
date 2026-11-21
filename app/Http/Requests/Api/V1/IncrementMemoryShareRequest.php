@@ -23,8 +23,8 @@ class IncrementMemoryShareRequest extends FormRequest
 
   public function toDto(string $externalId): IncrementShareData
   {
-    $actorKey = trim((string) ($this->header('X-Actor-Key') ?: $this->input('actorKey', '')));
-    $deviceId = trim((string) ($this->header('X-Device-Id') ?: $this->input('deviceId', '')));
+    $actorKey = trim((string) ($this->actorKey() ?: $this->input('actorKey', '')));
+    $deviceId = trim((string) ($this->deviceId() ?: $this->input('deviceId', '')));
     $deviceLockId = $this->input('deviceLockId') ? (int) $this->input('deviceLockId') : null;
 
     return new IncrementShareData(

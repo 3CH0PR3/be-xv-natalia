@@ -2,6 +2,7 @@
 
 use App\Exceptions\DomainRuleException;
 use App\Http\Middleware\EnsureActiveDeviceLockMiddleware;
+use App\Http\Middleware\ResolveDeviceContext;
 use App\Http\Middleware\VerifyHostPinMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->alias([
       'host.pin' => VerifyHostPinMiddleware::class,
       'device.lock' => EnsureActiveDeviceLockMiddleware::class,
+      'device.context' => ResolveDeviceContext::class,
+    ]);
+
+    $middleware->api(prepend: [
+      ResolveDeviceContext::class,
     ]);
   })
   ->withExceptions(function (Exceptions $exceptions): void {

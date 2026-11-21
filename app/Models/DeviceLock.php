@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 #[ObservedBy([DeviceLockObserver::class])]
@@ -23,7 +24,16 @@ class DeviceLock extends Model
     'guest_name',
     'guest_name_slug',
     'actor_key',
+    'avatar_path',
+    'cover_path',
+    'bio',
+    'location',
     'locked_at',
+  ];
+
+  protected $appends = [
+    'avatar_url',
+    'cover_url',
   ];
 
   protected function casts(): array
@@ -101,5 +111,23 @@ class DeviceLock extends Model
   public function belongsToTable(int $tableId): bool
   {
     return (int) $this->event_table_id === $tableId;
+  }
+
+  public function getAvatarUrlAttribute(): ?string
+  {
+    if (!$this->avatar_path) return null;
+    if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
+      return rtrim($req->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($this->avatar_path, '/');
+    }
+    return Storage::disk(config('xv.media_disk', 'public'))->url($this->avatar_path);
+  }
+
+  public function getCoverUrlAttribute(): ?string
+  {
+    if (!$this->cover_path) return null;
+    if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
+      return rtrim($req->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($this->cover_path, '/');
+    }
+    return Storage::disk(config('xv.media_disk', 'public'))->url($this->cover_path);
   }
 }

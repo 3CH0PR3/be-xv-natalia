@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\DTOs\Memory\MemoryFilterData;
+use App\DTOs\Shared\ViewerContextData;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,7 +30,7 @@ class ListMemoriesRequest extends FormRequest
   public function toDto(): MemoryFilterData
   {
     return new MemoryFilterData(
-      eventCode: trim((string) $this->input('event_code', config('xv.default_event_code', 'XV-NATALIA'))),
+      eventCode: $this->eventCode(),
       status: $this->filled('status') ? (string) $this->input('status') : null,
       includeAllStatuses: $this->boolean('include_all_statuses'),
       ownerDeviceId: $this->filled('owner_device_id') ? trim((string) $this->input('owner_device_id')) : null,
@@ -37,5 +38,10 @@ class ListMemoriesRequest extends FormRequest
       search: $this->filled('search') ? trim((string) $this->input('search')) : null,
       perPage: min(max((int) $this->input('per_page', 12), 1), 50),
     );
+  }
+
+  public function viewerContext(): ViewerContextData
+  {
+    return ViewerContextData::fromRequest($this);
   }
 }

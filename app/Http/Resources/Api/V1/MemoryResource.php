@@ -10,8 +10,8 @@ class MemoryResource extends JsonResource
 {
   public function toArray(Request $request): array
   {
-    $actorKey = trim((string) $request->header('X-Actor-Key', $request->query('actor_key', '')));
-    $deviceId = trim((string) $request->header('X-Device-Id', $request->query('device_id', '')));
+    $actorKey = $request->actorKey();
+    $deviceId = $request->deviceId();
 
     $items = $this->relationLoaded('mediaItems')
       ? MemoryMediaItemResource::collection($this->mediaItems)->resolve($request)

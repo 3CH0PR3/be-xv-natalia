@@ -24,6 +24,16 @@ class ResolveDeviceLockRequest extends FormRequest
     ];
   }
 
+  protected function prepareForValidation(): void
+  {
+    if (!$this->has('deviceId') && $this->deviceId() !== '') {
+      $this->merge(['deviceId' => $this->deviceId()]);
+    }
+    if (!$this->has('eventCode') && $this->eventCode() !== '') {
+      $this->merge(['eventCode' => $this->eventCode()]);
+    }
+  }
+
   public function toDto(): ResolveDeviceLockData
   {
     $candidates = array_values(array_filter(array_unique(array_merge(
@@ -32,8 +42,8 @@ class ResolveDeviceLockRequest extends FormRequest
     ))));
 
     return new ResolveDeviceLockData(
-      eventCode: trim((string) ($this->input('eventCode') ?: config('xv.default_event_code', 'XV-NATALIA'))),
-      deviceId: trim((string) $this->input('deviceId', '')),
+      eventCode: $this->eventCode(),
+      deviceId: $this->deviceId(),
       hwFingerprint: $this->filled('hwFingerprint') ? trim((string) $this->input('hwFingerprint')) : null,
       candidateFingerprints: $candidates,
       hardwareSummary: $this->input('hardwareSummary'),

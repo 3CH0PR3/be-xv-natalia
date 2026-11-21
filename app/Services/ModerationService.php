@@ -11,6 +11,8 @@ use App\Actions\Moderation\PurgeEventDataAction;
 use App\Actions\Moderation\VerifyHostPinAction;
 use App\DTOs\DeviceLock\ExpelGuestData;
 use App\DTOs\Moderation\ChangeHostPinData;
+use App\DTOs\Moderation\UpdateMemoryStatusData;
+use App\DTOs\Moderation\VerifyHostPinData;
 use App\Models\Event;
 use App\Models\Memory;
 use Illuminate\Support\Collection;
@@ -27,7 +29,7 @@ class ModerationService
     private readonly PurgeEventDataAction $purgeEvent,
   ) {}
 
-  public function verifyHostPin(string $pin): bool
+  public function verifyHostPin(VerifyHostPinData|string $pin): bool
   {
     return $this->verifyPin->execute($pin);
   }
@@ -43,9 +45,9 @@ class ModerationService
     return $this->buildMetrics->execute($event);
   }
 
-  public function updateMemoryStatus(string $externalId, string $status): Memory
+  public function updateMemoryStatus(UpdateMemoryStatusData|string $dtoOrExternalId, ?string $status = null): Memory
   {
-    return $this->updateStatus->execute($externalId, $status);
+    return $this->updateStatus->execute($dtoOrExternalId, $status);
   }
 
   public function expelGuest(ExpelGuestData $data): Collection

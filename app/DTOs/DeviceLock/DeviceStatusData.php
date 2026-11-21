@@ -13,10 +13,8 @@ final readonly class DeviceStatusData
 
   public static function fromRequest(Request $request, string $deviceId): self
   {
-    $eventCode = (string) ($request->header('X-Event-Code') ?: $request->input('eventCode', config('xv.default_event_code', 'XV-NATALIA')));
-
     return new self(
-      eventCode: trim($eventCode),
+      eventCode: $request->eventCode(),
       deviceId: trim($deviceId),
     );
   }

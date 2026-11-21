@@ -15,6 +15,7 @@ class SyncAppReleasesRequest extends FormRequest
   public function rules(): array
   {
     return [
+      'eventCode' => ['nullable', 'string', 'max:48'],
       'buildId' => ['nullable', 'string', 'max:128'],
       'builtAtMs' => ['nullable', 'integer'],
       'releases' => ['required', 'array', 'max:250'],
@@ -33,6 +34,7 @@ class SyncAppReleasesRequest extends FormRequest
       buildId: $this->filled('buildId') ? trim((string) $this->input('buildId')) : null,
       builtAtMs: (int) $this->input('builtAtMs', round(microtime(true) * 1000)),
       releases: $this->input('releases', []),
+      eventCode: $this->eventCode(),
     );
   }
 }

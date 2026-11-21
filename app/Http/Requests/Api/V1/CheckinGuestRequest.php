@@ -55,6 +55,16 @@ class CheckinGuestRequest extends FormRequest
     ];
   }
 
+  protected function prepareForValidation(): void
+  {
+    if (!$this->filled('deviceId') && $this->deviceId() !== '') {
+      $this->merge(['deviceId' => $this->deviceId()]);
+    }
+    if (!$this->filled('eventCode') && $this->eventCode() !== '') {
+      $this->merge(['eventCode' => $this->eventCode()]);
+    }
+  }
+
   public function toDto(): CheckinGuestData
   {
     $candidates = array_values(array_filter(array_unique(array_merge(
@@ -62,11 +72,13 @@ class CheckinGuestRequest extends FormRequest
       $this->input('candidateFingerprints', [])
     ))));
 
+    $deviceId = trim((string) ($this->input('deviceId') ?: $this->deviceId()));
+
     return new CheckinGuestData(
-      eventCode: trim((string) ($this->input('eventCode') ?: config('xv.default_event_code', 'XV-NATALIA'))),
+      eventCode: $this->eventCode(),
       tableCode: trim((string) $this->input('tableCode')),
       guestName: trim((string) $this->input('guestName')),
-      deviceId: trim((string) $this->input('deviceId')),
+      deviceId: $deviceId,
       hwFingerprint: $this->filled('hwFingerprint') ? trim((string) $this->input('hwFingerprint')) : null,
       candidateFingerprints: $candidates,
       hardwareSummary: $this->input('hardwareSummary'),

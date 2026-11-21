@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\DTOs\Memory\UpdateCaptionData;
+use App\DTOs\Shared\ViewerContextData;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateMemoryCaptionRequest extends FormRequest
@@ -25,5 +26,10 @@ class UpdateMemoryCaptionRequest extends FormRequest
       externalId: $externalId,
       caption: trim((string) $this->input('caption')),
     );
+  }
+
+  public function viewerContext(): ViewerContextData
+  {
+    return ViewerContextData::fromRequest($this);
   }
 }

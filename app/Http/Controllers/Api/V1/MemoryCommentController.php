@@ -4,14 +4,16 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\Shared\ViewerContextData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\DeleteCommentRequest;
+use App\Http\Requests\Api\V1\ListCommentsRequest;
 use App\Http\Requests\Api\V1\StoreCommentRequest;
 use App\Http\Requests\Api\V1\ToggleCommentLikeRequest;
 use App\Http\Requests\Api\V1\UpdateCommentRequest;
+use App\Http\Resources\Api\V1\MemoryCommentLikeResource;
 use App\Http\Resources\Api\V1\MemoryCommentResource;
 use App\Services\CommentService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class MemoryCommentController extends Controller
@@ -22,7 +24,7 @@ class MemoryCommentController extends Controller
     private readonly CommentService $service,
   ) {}
 
-  public function index(string $externalId): JsonResponse
+  public function index(string $externalId, ListCommentsRequest $request): JsonResponse
   {
     $comments = $this->service->listComments($externalId);
     return $this->sendResponse(
@@ -57,12 +59,12 @@ class MemoryCommentController extends Controller
     );
   }
 
-  public function destroy(string $externalId, string $commentExternalId, Request $request): JsonResponse
+  public function destroy(string $externalId, string $commentExternalId, DeleteCommentRequest $request): JsonResponse
   {
     $result = $this->service->deleteComment(
       $externalId,
       $commentExternalId,
-      ViewerContextData::fromRequest($request)
+      $request->toDto()
     );
 
     return $this->sendResponse($result, 'Comentario eliminado.', 200);
@@ -71,6 +73,10 @@ class MemoryCommentController extends Controller
   public function toggleLike(string $externalId, string $commentExternalId, ToggleCommentLikeRequest $request): JsonResponse
   {
     $result = $this->service->toggleLike($request->toDto($externalId, $commentExternalId));
-    return $this->sendResponse($result, 'Like de comentario actualizado.', 200);
+    return $this->sendResponse(
+      new MemoryCommentLikeResource($result),
+      'Like de comentario actualizado.',
+      200
+    );
   }
 }

@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\DTOs\Shared\ViewerContextData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\GenerateTableQrsRequest;
+use App\Http\Requests\Api\V1\ListTablesRequest;
 use App\Http\Requests\Api\V1\ValidateQrRequest;
 use App\Http\Resources\Api\V1\EventTableResource;
 use App\Http\Resources\Api\V1\TableValidationResource;
 use App\Services\TableService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class TableController extends Controller
 {
@@ -21,10 +20,9 @@ class TableController extends Controller
     private readonly TableService $service,
   ) {}
 
-  public function index(Request $request): JsonResponse
+  public function index(ListTablesRequest $request): JsonResponse
   {
-    $viewer = ViewerContextData::fromRequest($request);
-    $tables = $this->service->listTables($viewer->eventCode);
+    $tables = $this->service->listTables($request->toDto()->eventCode);
 
     return $this->sendResponse(
       EventTableResource::collection($tables),

@@ -18,6 +18,10 @@ return new class extends Migration {
       $table->string('guest_name', 80);
       $table->string('guest_name_slug', 80);
       $table->string('actor_key', 128);
+      $table->string('avatar_path', 255)->nullable();
+      $table->string('cover_path', 255)->nullable();
+      $table->string('bio', 255)->nullable();
+      $table->string('location', 100)->nullable();
       $table->timestamp('locked_at')->nullable();
       $table->timestamps();
 

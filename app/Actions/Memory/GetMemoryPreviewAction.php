@@ -20,15 +20,19 @@ class GetMemoryPreviewAction
     $caption = trim((string) ($memory->caption ?? ''));
     $description = $caption !== '' ? "\"{$caption}\"" : 'Recuerdo compartido en los 15 Años de Natalia Isabella.';
 
-    $firstMedia = $memory->mediaItems->first();
+    $firstMedia = $memory->mediaItems->first(function ($m) {
+      return $m->media_type === 'image' || !empty($m->poster_path);
+    }) ?: $memory->mediaItems->first();
+
     $mediaUrls = $firstMedia?->publicUrls() ?? [];
-    $candidateImage = $mediaUrls['imageUrl'] ?? '';
+    $isVideo = $firstMedia?->media_type === 'video';
 
-    $isVideoWithPoster = $firstMedia?->media_type === 'video' && !empty($mediaUrls['posterUrl']);
-    $candidateImage = $isVideoWithPoster ? $mediaUrls['posterUrl'] : $candidateImage;
-
-    $hasNoImageYet = empty($candidateImage) && !empty($mediaUrls['thumbUrl']);
-    $candidateImage = $hasNoImageYet ? $mediaUrls['thumbUrl'] : $candidateImage;
+    $candidateImage = '';
+    if ($isVideo) {
+      $candidateImage = $mediaUrls['posterUrl'] ?? ($mediaUrls['thumbUrl'] ?? '');
+    } else {
+      $candidateImage = $mediaUrls['imageUrl'] ?? ($mediaUrls['thumbUrl'] ?? '');
+    }
 
     $fallbackImage = 'https://xv-natalia-isabela.com/images/gala-hero-static.jpg';
     $imageUrl = !empty($candidateImage) ? $candidateImage : $fallbackImage;

@@ -41,3 +41,10 @@ require_once __DIR__ . '/apis/moderation/api-moderation.php';
 |-------------------------------------------------------------
 */
 require_once __DIR__ . '/apis/releases/api-releases.php';
+
+/*
+|-------------------------------------------------------------
+| APIs - GUEST PROFILES
+|-------------------------------------------------------------
+*/
+require_once __DIR__ . '/apis/profile/api-profile.php';

@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\DTOs\Shared\ViewerContextData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\DeleteMediaItemRequest;
+use App\Http\Requests\Api\V1\DeleteMemoryRequest;
+use App\Http\Requests\Api\V1\GetMemoryPreviewRequest;
+use App\Http\Requests\Api\V1\GetMemoryRequest;
 use App\Http\Requests\Api\V1\IncrementMemoryShareRequest;
 use App\Http\Requests\Api\V1\ListMemoriesRequest;
 use App\Http\Requests\Api\V1\StoreMemoryRequest;
@@ -15,7 +18,6 @@ use App\Http\Resources\Api\V1\MemoryShareResource;
 use App\Services\MemoryService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -31,15 +33,15 @@ class MemoryController extends Controller
   {
     $paginator = $this->service->listMemories(
       $request->toDto(),
-      ViewerContextData::fromRequest($request)
+      $request->viewerContext()
     );
 
     return new MemoryCollection($paginator);
   }
 
-  public function show(string $externalId, Request $request): JsonResponse
+  public function show(string $externalId, GetMemoryRequest $request): JsonResponse
   {
-    $memory = $this->service->getMemory($externalId, ViewerContextData::fromRequest($request));
+    $memory = $this->service->getMemory($externalId, $request->toDto());
     return $this->sendResponse(
       new MemoryResource($memory),
       'Recuerdo obtenido.',
@@ -47,7 +49,7 @@ class MemoryController extends Controller
     );
   }
 
-  public function preview(string $externalId): JsonResponse
+  public function preview(string $externalId, GetMemoryPreviewRequest $request): JsonResponse
   {
     $preview = $this->service->getMemoryPreview($externalId);
 
@@ -76,7 +78,7 @@ class MemoryController extends Controller
   {
     $memory = $this->service->updateCaption(
       $request->toDto($externalId),
-      ViewerContextData::fromRequest($request)
+      $request->viewerContext()
     );
 
     return $this->sendResponse(
@@ -86,18 +88,18 @@ class MemoryController extends Controller
     );
   }
 
-  public function destroy(string $externalId, Request $request): JsonResponse
+  public function destroy(string $externalId, DeleteMemoryRequest $request): JsonResponse
   {
-    $result = $this->service->deleteMemory($externalId, ViewerContextData::fromRequest($request));
+    $result = $this->service->deleteMemory($externalId, $request->toDto());
     return $this->sendResponse($result, 'Recuerdo eliminado correctamente.', 200);
   }
 
-  public function destroyMediaItem(string $externalId, string $mediaItemId, Request $request): JsonResponse
+  public function destroyMediaItem(string $externalId, string $mediaItemId, DeleteMediaItemRequest $request): JsonResponse
   {
     $result = $this->service->deleteMediaItem(
       $externalId,
       $mediaItemId,
-      ViewerContextData::fromRequest($request)
+      $request->toDto()
     );
 
     if ($result['deletedParent']) {

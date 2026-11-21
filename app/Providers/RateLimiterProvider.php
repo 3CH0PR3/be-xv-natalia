@@ -20,32 +20,32 @@ class RateLimiterProvider extends ServiceProvider
   private function registerApiLimiters(): void
   {
     RateLimiter::for('api', static function (Request $request) {
-      $key = $request->header('X-Device-Id') ?: $request->ip();
+      $key = $request->deviceId() ?: $request->ip();
       return Limit::perMinute(120)->by($key);
     });
 
     RateLimiter::for('api.celebrate', static function (Request $request) {
-      $key = $request->header('X-Device-Id') ?: $request->ip();
+      $key = $request->deviceId() ?: $request->ip();
       return Limit::perMinute(120)->by($key);
     });
 
     RateLimiter::for('api.checkin', static function (Request $request) {
-      $key = $request->header('X-Device-Id') ?: $request->ip();
+      $key = $request->deviceId() ?: $request->ip();
       return Limit::perMinute(60)->by($key);
     });
 
     RateLimiter::for('api.memories.store', static function (Request $request) {
-      $key = $request->header('X-Device-Id') ?: $request->ip();
+      $key = $request->deviceId() ?: $request->ip();
       return Limit::perMinute(30)->by($key);
     });
 
     RateLimiter::for('api.memories.interactions', static function (Request $request) {
-      $key = $request->header('X-Device-Id') ?: $request->ip();
+      $key = $request->deviceId() ?: $request->ip();
       return Limit::perMinute(180)->by($key);
     });
 
     RateLimiter::for('api.memories.reactions', static function (Request $request) {
-      $key = (string) ($request->header('X-Device-Id') ?: ($request->header('X-Actor-Key') ?: $request->ip()));
+      $key = (string) ($request->deviceId() ?: ($request->actorKey() ?: $request->ip()));
       return Limit::perMinute(60)
         ->by($key)
         ->response(static fn () => response()->json([
@@ -57,7 +57,7 @@ class RateLimiterProvider extends ServiceProvider
     });
 
     RateLimiter::for('api.comments', static function (Request $request) {
-      $key = (string) ($request->header('X-Device-Id') ?: ($request->header('X-Actor-Key') ?: $request->ip()));
+      $key = (string) ($request->deviceId() ?: ($request->actorKey() ?: $request->ip()));
       return Limit::perMinute(30)
         ->by($key)
         ->response(static fn () => response()->json([

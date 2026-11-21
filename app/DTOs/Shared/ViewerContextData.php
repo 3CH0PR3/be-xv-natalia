@@ -16,12 +16,10 @@ final readonly class ViewerContextData
   public static function fromRequest(Request $request): self
   {
     return new self(
-      eventCode: trim((string) ($request->query('event_code')
-        ?: $request->input('eventCode')
-        ?: config('xv.default_event_code', 'XV-NATALIA'))),
-      actorKey: trim((string) $request->header('X-Actor-Key', $request->query('actor_key', ''))),
-      deviceId: trim((string) $request->header('X-Device-Id', $request->query('device_id', ''))),
-      hostPin: trim((string) ($request->header('X-Host-Pin') ?: $request->input('hostPin') ?: $request->query('host_pin', ''))),
+      eventCode: $request->eventCode(),
+      actorKey: $request->actorKey(),
+      deviceId: $request->deviceId(),
+      hostPin: $request->hostPin(),
     );
   }
 

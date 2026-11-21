@@ -10,8 +10,8 @@ class MemoryCommentResource extends JsonResource
 {
   public function toArray(Request $request): array
   {
-    $actorKey = trim((string) $request->header('X-Actor-Key', $request->query('actor_key', '')));
-    $deviceId = trim((string) $request->header('X-Device-Id', $request->query('device_id', '')));
+    $actorKey = $request->actorKey();
+    $deviceId = $request->deviceId();
 
     $likedBy = $this->relationLoaded('commentLikes')
       ? $this->commentLikes->pluck('actor_key')->values()->all()
