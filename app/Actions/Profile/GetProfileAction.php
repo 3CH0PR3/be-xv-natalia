@@ -117,6 +117,10 @@ class GetProfileAction
     }
 
     $request = app()->bound('request') ? app('request') : new Request();
+    $page = max(1, (int) $request->query('page', 1));
+    $perPage = max(1, min(50, (int) $request->query('perPage', 10)));
+    $offset = ($page - 1) * $perPage;
+    $pagedMemories = $memories->slice($offset, $perPage)->values();
 
     return [
       'id' => (string) ($lock->actor_key ?: $lock->id),
@@ -128,6 +132,7 @@ class GetProfileAction
       'coverUrl' => $lock->cover_url,
       'bio' => $lock->bio ?? '',
       'location' => $lock->location ?? '',
+      'joinedAt' => optional($lock->locked_at ?: $lock->created_at)->toIso8601String(),
       'isOwnProfile' => $isOwn,
       'stats' => [
         'totalMemories' => $memories->count(),
@@ -135,7 +140,13 @@ class GetProfileAction
         'totalVideos' => $totalVideos,
         'totalReactions' => $totalReactions,
       ],
-      'memories' => MemoryResource::collection($memories)->resolve($request),
+      'pagination' => [
+        'page' => $page,
+        'perPage' => $perPage,
+        'total' => $memories->count(),
+        'hasMore' => ($offset + $perPage) < $memories->count(),
+      ],
+      'memories' => MemoryResource::collection($pagedMemories)->resolve($request),
     ];
   }
 
@@ -153,6 +164,10 @@ class GetProfileAction
       ->get();
 
     $request = app()->bound('request') ? app('request') : new Request();
+    $page = max(1, (int) $request->query('page', 1));
+    $perPage = max(1, min(50, (int) $request->query('perPage', 10)));
+    $offset = ($page - 1) * $perPage;
+    $pagedMemories = $memories->slice($offset, $perPage)->values();
 
     return [
       'id' => (string) ($memory->owner_actor_key ?: $memory->guest_name),
@@ -164,6 +179,7 @@ class GetProfileAction
       'coverUrl' => null,
       'bio' => '',
       'location' => '',
+      'joinedAt' => optional($memory->created_at)->toIso8601String(),
       'isOwnProfile' => $isOwn,
       'stats' => [
         'totalMemories' => $memories->count(),
@@ -171,7 +187,13 @@ class GetProfileAction
         'totalVideos' => $memories->where('media_type', 'video')->count(),
         'totalReactions' => 0,
       ],
-      'memories' => MemoryResource::collection($memories)->resolve($request),
+      'pagination' => [
+        'page' => $page,
+        'perPage' => $perPage,
+        'total' => $memories->count(),
+        'hasMore' => ($offset + $perPage) < $memories->count(),
+      ],
+      'memories' => MemoryResource::collection($pagedMemories)->resolve($request),
     ];
   }
 }

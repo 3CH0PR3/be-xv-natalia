@@ -24,6 +24,7 @@ class MemoryCommentResource extends JsonResource
     return [
       'id' => $this->external_id,
       'author' => $this->resolved_author,
+      'avatarUrl' => $this->deviceLock?->avatar_url,
       'table' => $this->table_label,
       'text' => $this->text,
       'likes' => $likes,

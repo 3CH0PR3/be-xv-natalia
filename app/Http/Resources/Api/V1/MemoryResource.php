@@ -22,6 +22,7 @@ class MemoryResource extends JsonResource
     return [
       'id' => $this->external_id,
       'guestName' => $this->resolved_guest_name,
+      'avatarUrl' => $this->deviceLock?->avatar_url,
       'tableCode' => $this->table_code,
       'ownerDeviceId' => $this->owner_device_id ?? '',
       'ownerActorKey' => $this->owner_actor_key ?? '',

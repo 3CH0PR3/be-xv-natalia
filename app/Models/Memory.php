@@ -165,9 +165,9 @@ class Memory extends Model
   public function scopeWithWallRelations(Builder $query, ?string $viewerActorKey = null, ?string $viewerDeviceId = null): Builder
   {
     return $query->with([
-      'deviceLock:id,guest_name',
+      'deviceLock:id,guest_name,avatar_path,actor_key,device_id',
       'mediaItems',
-      'comments.deviceLock:id,guest_name',
+      'comments.deviceLock:id,guest_name,avatar_path,actor_key,device_id',
       'comments.commentLikes' => static function ($q): void {
         $q->select(['id', 'comment_id', 'actor_key', 'device_id']);
       },

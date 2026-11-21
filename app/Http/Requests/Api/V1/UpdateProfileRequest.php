@@ -90,7 +90,17 @@ class UpdateProfileRequest extends FormRequest
           }
         },
       ],
-      'bio' => ['nullable', 'string', 'max:255'],
+      'bio' => [
+        'nullable',
+        'string',
+        'max:255',
+        static function (string $attribute, mixed $value, \Closure $fail): void {
+          if ($value === null || trim((string) $value) === '') return;
+          if (preg_match('/[<>{}~^=+\\|\\/`$%*#@\\[\\]]/u', (string) $value)) {
+            $fail('La biografía solo debe contener texto legible sin caracteres especiales ni símbolos extraños.');
+          }
+        },
+      ],
       'location' => ['nullable', 'string', 'max:100'],
       'avatar' => ['nullable', 'file', 'max:10240', $imageValidator],
       'cover' => ['nullable', 'file', 'max:15360', $imageValidator],

@@ -8,6 +8,7 @@ use App\Events\MemoryCreated;
 use App\Events\MemoryReactionUpdated;
 use App\Events\MemoryShared;
 use App\Events\PartyCelebrated;
+use App\Events\ProfileUpdated;
 use App\Events\TablesUpdated;
 use App\Jobs\ProcessCommentJob;
 use App\Jobs\ProcessCommentLikeJob;
@@ -46,6 +47,7 @@ class JobsAndReverbBroadcastingTest extends TestCase
     $this->assertInstanceOf(ShouldBroadcastNow::class, new MemoryShared('XV-NATALIA', 'mem-1', 5));
     $this->assertInstanceOf(ShouldBroadcastNow::class, new PartyCelebrated('XV-NATALIA', 3));
     $this->assertInstanceOf(ShouldBroadcastNow::class, new TablesUpdated('XV-NATALIA', []));
+    $this->assertInstanceOf(ShouldBroadcastNow::class, new ProfileUpdated('XV-NATALIA', []));
   }
 
   public function test_all_events_broadcast_to_correct_channel_and_event_name(): void
@@ -73,6 +75,10 @@ class JobsAndReverbBroadcastingTest extends TestCase
     $tu = new TablesUpdated('XV-NATALIA', []);
     $this->assertSame('event.XV-NATALIA', $tu->broadcastOn()[0]->name);
     $this->assertSame('tables.updated', $tu->broadcastAs());
+
+    $pu = new ProfileUpdated('XV-NATALIA', []);
+    $this->assertSame('event.XV-NATALIA', $pu->broadcastOn()[0]->name);
+    $this->assertSame('profile.updated', $pu->broadcastAs());
   }
 
   public function test_process_party_reaction_job_executes_and_broadcasts(): void

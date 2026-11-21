@@ -3,8 +3,11 @@
 namespace App\Actions\Profile;
 
 use App\DTOs\Profile\UpdateProfileData;
+use App\Events\ProfileUpdated;
+use App\Jobs\ProcessProfileUpdateJob;
 use App\Models\DeviceLock;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -78,11 +81,20 @@ class UpdateProfileAction
 
     $lock->save();
 
-    return $this->getProfile->execute(
+    $profileData = $this->getProfile->execute(
       targetIdentifier: (string) $lock->id,
       viewerDeviceId: $data->ownerDeviceId,
       viewerActorKey: $data->ownerActorKey,
       eventCode: $eventCode
     );
+
+    try {
+      broadcast(new ProfileUpdated($eventCode, $profileData));
+      ProcessProfileUpdateJob::dispatch($eventCode, $profileData);
+    } catch (\Throwable $e) {
+      Log::warning('Error broadcasting ProfileUpdated: ' . $e->getMessage());
+    }
+
+    return $profileData;
   }
 }

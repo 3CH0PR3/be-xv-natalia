@@ -5,9 +5,11 @@ namespace App\Http\Middleware;
 use App\Models\DeviceFingerprintIndex;
 use App\Models\DeviceLock;
 use App\Models\Event;
+use App\Models\EventTable;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -27,8 +29,9 @@ class EnsureActiveDeviceLockMiddleware
     $eventCode = $request->eventCode();
     $deviceId = $request->deviceId();
     $actorKey = $request->actorKey();
+    $allowDesktopCapture = (bool) config('xv.allow_desktop_capture', false);
 
-    if ($deviceId === '' && $actorKey === '') {
+    if ($deviceId === '' && $actorKey === '' && !$allowDesktopCapture) {
       return response()->json([
         'code' => 'QR_SESSION_REQUIRED',
         'message' => 'Escanea el código QR de tu mesa para interactuar en el muro.',
@@ -66,6 +69,29 @@ class EnsureActiveDeviceLockMiddleware
       DeviceFingerprintIndex::updateOrCreate(
         ['event_id' => $event->id, 'fingerprint' => $deviceId],
         ['device_lock_id' => $actorLock->id]
+      );
+    }
+
+    if (!$activeLock && $allowDesktopCapture) {
+      $fallbackTable = EventTable::forEvent($event->id)->first();
+      $guestName = trim((string) $request->input('guestName', 'Invitado Local'));
+      if ($guestName === '') {
+        $guestName = 'Invitado Local';
+      }
+      $slug = Str::slug($guestName);
+      $devDeviceId = $deviceId !== '' ? $deviceId : 'dev_local_desktop';
+      $activeLock = DeviceLock::firstOrCreate(
+        [
+          'event_id' => $event->id,
+          'device_id' => $devDeviceId,
+        ],
+        [
+          'event_table_id' => $fallbackTable?->id,
+          'guest_name' => $guestName,
+          'guest_name_slug' => $slug,
+          'actor_key' => "mesa-01__{$slug}",
+          'locked_at' => now(),
+        ]
       );
     }
 
