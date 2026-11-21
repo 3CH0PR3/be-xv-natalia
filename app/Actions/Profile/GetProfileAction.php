@@ -73,7 +73,29 @@ class GetProfileAction
       throw new NotFoundHttpException('El perfil solicitado no fue encontrado.');
     }
 
-    return $this->formatProfileResponse($lock, $viewerDeviceId, $viewerActorKey);
+    $page = app()->bound('request') ? (int) app('request')->query('page', 1) : 1;
+    $cacheKey = "profile:data:{$event->id}:{$lock->id}:{$page}";
+
+    if (app()->environment('testing')) {
+      $formatted = $this->formatProfileResponse($lock, $viewerDeviceId, $viewerActorKey);
+    } else {
+      $formatted = \Illuminate\Support\Facades\Cache::store('redis')->remember(
+        $cacheKey,
+        120,
+        fn () => $this->formatProfileResponse($lock, $viewerDeviceId, $viewerActorKey)
+      );
+    }
+
+    // Dynamic resolution of isOwnProfile relative to current viewer
+    $isOwn = false;
+    if ($viewerActorKey && $lock->actor_key === $viewerActorKey) {
+      $isOwn = true;
+    } elseif ($viewerDeviceId && $lock->device_id === $viewerDeviceId) {
+      $isOwn = true;
+    }
+    $formatted['isOwnProfile'] = $isOwn;
+
+    return $formatted;
   }
 
   private function formatProfileResponse(DeviceLock $lock, ?string $viewerDeviceId, ?string $viewerActorKey): array

@@ -48,7 +48,7 @@ class CreateCommentAction
 
       app(\App\Services\CommentLikeCounterService::class)->set($comment->id, 0);
 
-      $fresh = $comment->fresh(['deviceLock:id,guest_name', 'commentLikes']);
+      $fresh = $comment->fresh(['deviceLock:id,guest_name,avatar_path,actor_key,device_id', 'commentLikes']);
       $nextCount = (int) $memory->fresh()->comments_count;
 
       DB::afterCommit(static function () use ($comment): void {

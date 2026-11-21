@@ -48,6 +48,28 @@ class MemoryComment extends Model
     return $this->deviceLock?->guest_name ?? $this->author ?? '';
   }
 
+  public function getResolvedAvatarUrlAttribute(): ?string
+  {
+    if ($this->relationLoaded('deviceLock') && $this->deviceLock) {
+      return $this->deviceLock->avatar_url;
+    }
+    if ($this->device_lock_id) {
+      return $this->deviceLock?->avatar_url;
+    }
+    if ($this->owner_device_id || $this->owner_actor_key) {
+      $lock = DeviceLock::where(function ($q): void {
+        if ($this->owner_actor_key) {
+          $q->orWhere('actor_key', $this->owner_actor_key);
+        }
+        if ($this->owner_device_id) {
+          $q->orWhere('device_id', $this->owner_device_id);
+        }
+      })->first();
+      return $lock?->avatar_url;
+    }
+    return null;
+  }
+
   public function commentLikes(): HasMany
   {
     return $this->hasMany(MemoryCommentLike::class, 'comment_id');

@@ -30,7 +30,7 @@ class ProcessCommentJob implements ShouldQueue
 
   public function handle(): void
   {
-    $comment = MemoryComment::with(['deviceLock:id,guest_name', 'memory.event', 'commentLikes'])->find($this->commentId);
+    $comment = MemoryComment::with(['deviceLock:id,guest_name,avatar_path,actor_key,device_id', 'memory.event', 'commentLikes'])->find($this->commentId);
     if (!$comment) {
       return;
     }

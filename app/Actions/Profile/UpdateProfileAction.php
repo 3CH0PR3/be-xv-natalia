@@ -6,6 +6,7 @@ use App\DTOs\Profile\UpdateProfileData;
 use App\Events\ProfileUpdated;
 use App\Jobs\ProcessProfileUpdateJob;
 use App\Models\DeviceLock;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class UpdateProfileAction
 {
+  use InvalidatesCache;
+
   public function __construct(
     private readonly GetProfileAction $getProfile
   ) {}
@@ -80,6 +83,9 @@ class UpdateProfileAction
     }
 
     $lock->save();
+
+    // Invalidar caché de perfil en Redis
+    $this->scanAndDelete("profile:data:{$lock->event_id}:{$lock->id}:*");
 
     $profileData = $this->getProfile->execute(
       targetIdentifier: (string) $lock->id,
