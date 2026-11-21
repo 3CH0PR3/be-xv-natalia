@@ -116,8 +116,9 @@ class DeviceLock extends Model
   public function getAvatarUrlAttribute(): ?string
   {
     if (!$this->avatar_path) return null;
+    $identifier = $this->actor_key ?: $this->id;
     if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
-      return rtrim($req->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($this->avatar_path, '/');
+      return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/avatar";
     }
     return Storage::disk(config('xv.media_disk', 'public'))->url($this->avatar_path);
   }
@@ -125,8 +126,9 @@ class DeviceLock extends Model
   public function getCoverUrlAttribute(): ?string
   {
     if (!$this->cover_path) return null;
+    $identifier = $this->actor_key ?: $this->id;
     if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
-      return rtrim($req->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($this->cover_path, '/');
+      return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/cover";
     }
     return Storage::disk(config('xv.media_disk', 'public'))->url($this->cover_path);
   }

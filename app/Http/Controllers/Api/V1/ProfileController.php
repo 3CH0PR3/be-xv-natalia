@@ -9,6 +9,7 @@ use App\Http\Resources\Api\V1\ProfileResource;
 use App\Services\ProfileService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProfileController extends Controller
 {
@@ -17,6 +18,16 @@ class ProfileController extends Controller
   public function __construct(
     private readonly ProfileService $service
   ) {}
+
+  public function avatar(string $id): BinaryFileResponse
+  {
+    return $this->service->getAvatar($id);
+  }
+
+  public function cover(string $id): BinaryFileResponse
+  {
+    return $this->service->getCover($id);
+  }
 
   public function myProfile(GetProfileRequest $request): JsonResponse
   {
