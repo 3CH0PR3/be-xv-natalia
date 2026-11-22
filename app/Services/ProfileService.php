@@ -7,6 +7,9 @@ use App\Actions\Profile\GetProfileMediaAction;
 use App\Actions\Profile\UpdateProfileAction;
 use App\DTOs\Profile\UpdateProfileData;
 use App\DTOs\Profile\ViewProfileData;
+use App\Models\DeviceLock;
+use App\Models\Event;
+use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProfileService
@@ -48,5 +51,75 @@ class ProfileService
   public function updateProfile(UpdateProfileData $data): array
   {
     return $this->updateProfile->execute($data);
+  }
+
+  public function listProfiles(?string $search = null, int $limit = 10, int $page = 1, ?string $eventCode = null): array
+  {
+    $eventCode = $eventCode ?: config('xv.default_event_code', 'XV-NATALIA');
+    $event = Event::where('code', $eventCode)->first();
+    if (!$event) {
+      return [
+        'data' => [],
+        'pagination' => [
+          'currentPage' => 1,
+          'perPage' => $limit,
+          'total' => 0,
+          'hasMore' => false,
+        ],
+      ];
+    }
+
+    $query = DeviceLock::where('event_id', $event->id)->with('table');
+
+    if ($search !== null && trim($search) !== '') {
+      $term = trim($search);
+      $cleanSlug = DeviceLock::normalizeSlug($term);
+      $query->where(function (Builder $q) use ($term, $cleanSlug): void {
+        $q->where('guest_name', 'like', "%{$term}%")
+          ->orWhere('guest_name_slug', 'like', "%{$cleanSlug}%");
+        if (is_numeric($term)) {
+          $q->orWhere('id', (int) $term);
+        }
+        $q->orWhereHas('table', function (Builder $tq) use ($term): void {
+          $tq->where('code', 'like', "%{$term}%")
+            ->orWhere('number', 'like', "%{$term}%")
+            ->orWhere('zone', 'like', "%{$term}%");
+        });
+      });
+    }
+
+    $query->orderByRaw('CASE WHEN avatar_path IS NOT NULL AND avatar_path != \'\' THEN 0 ELSE 1 END')
+      ->orderByDesc('locked_at')
+      ->orderByDesc('id');
+
+    $paginator = $query->paginate($limit, ['*'], 'page', $page);
+
+    $items = collect($paginator->items())->map(function (DeviceLock $lock): array {
+      return [
+        'id' => $lock->id,
+        'guestName' => $lock->guest_name,
+        'slug' => $lock->guest_name_slug ?: DeviceLock::normalizeSlug($lock->guest_name),
+        'actorKey' => $lock->actor_key,
+        'deviceId' => $lock->device_id,
+        'avatarUrl' => $lock->avatar_url,
+        'coverUrl' => $lock->cover_url,
+        'bio' => $lock->bio,
+        'location' => $lock->location,
+        'tableCode' => $lock->table?->code,
+        'tableNumber' => $lock->table?->number,
+        'tableZone' => $lock->table?->zone,
+        'joinedAt' => optional($lock->locked_at ?? $lock->created_at)->toIso8601String(),
+      ];
+    })->values()->all();
+
+    return [
+      'data' => $items,
+      'pagination' => [
+        'currentPage' => $paginator->currentPage(),
+        'perPage' => $paginator->perPage(),
+        'total' => $paginator->total(),
+        'hasMore' => $paginator->hasMorePages(),
+      ],
+    ];
   }
 }

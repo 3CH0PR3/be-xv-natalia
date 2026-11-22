@@ -9,6 +9,7 @@ use App\Http\Resources\Api\V1\ProfileResource;
 use App\Services\ProfileService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProfileController extends Controller
@@ -18,6 +19,22 @@ class ProfileController extends Controller
   public function __construct(
     private readonly ProfileService $service
   ) {}
+
+  public function index(Request $request): JsonResponse
+  {
+    $search = $request->query('search') ?: $request->query('q');
+    $limit = min(30, max(1, (int) $request->query('limit', $request->query('per_page', 10))));
+    $page = max(1, (int) $request->query('page', 1));
+    $eventCode = $request->query('event_code') ?: config('xv.default_event_code', 'XV-NATALIA');
+
+    $result = $this->service->listProfiles($search, $limit, $page, $eventCode);
+
+    return $this->sendResponse(
+      $result,
+      'Listado de perfiles obtenido exitosamente.',
+      200
+    );
+  }
 
   public function avatar(string $id): BinaryFileResponse
   {

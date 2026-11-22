@@ -62,7 +62,8 @@ class CommentTest extends TestCase
       ]);
     $commentRes->assertStatus(201)
       ->assertJsonPath('data.author', 'Pedro Gomez')
-      ->assertJsonPath('data.text', 'Qué hermosa foto!');
+      ->assertJsonPath('data.text', 'Qué hermosa foto!')
+      ->assertJsonPath('data.isEdited', false);
 
     $commentId = $commentRes->json('data.id');
 
@@ -77,7 +78,8 @@ class CommentTest extends TestCase
       'text' => 'Comentario editado con más cariño!',
     ]);
     $updateRes->assertStatus(200)
-      ->assertJsonPath('data.text', 'Comentario editado con más cariño!');
+      ->assertJsonPath('data.text', 'Comentario editado con más cariño!')
+      ->assertJsonPath('data.isEdited', true);
 
     // Check in liker
     $this->postJson('/api/v1/checkin', [

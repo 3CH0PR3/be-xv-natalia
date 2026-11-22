@@ -55,6 +55,7 @@ class MemoryAndFeedTest extends TestCase
     $response->assertStatus(201)
       ->assertJsonPath('data.guestName', 'Valeria Gómez')
       ->assertJsonPath('data.caption', 'Felicidades Natalia en tus 15!')
+      ->assertJsonPath('data.isEdited', false)
       ->assertJsonCount(1, 'data.mediaItems');
 
     $externalId = $response->json('data.id');
@@ -77,7 +78,8 @@ class MemoryAndFeedTest extends TestCase
       'caption' => 'Nueva dedicatoria actualizada!',
     ]);
     $updateRes->assertStatus(200)
-      ->assertJsonPath('data.caption', 'Nueva dedicatoria actualizada!');
+      ->assertJsonPath('data.caption', 'Nueva dedicatoria actualizada!')
+      ->assertJsonPath('data.isEdited', true);
 
     // Checkin second guest to react
     $this->postJson('/api/v1/checkin', [

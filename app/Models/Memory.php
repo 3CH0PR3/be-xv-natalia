@@ -28,6 +28,7 @@ class Memory extends Model
     'owner_actor_key',
     'moment_tag',
     'caption',
+    'caption_edited_at',
     'media_type',
     'status',
     'likes_count',
@@ -47,6 +48,7 @@ class Memory extends Model
       'comments_count' => 'integer',
       'shares_count' => 'integer',
       'timestamp_ms' => 'integer',
+      'caption_edited_at' => 'datetime',
     ];
   }
 

@@ -30,7 +30,10 @@ class UpdateCommentTextAction
         );
       }
 
-      $comment->update(['text' => $data->text]);
+      $comment->update([
+        'text' => $data->text,
+        'edited_at' => now(),
+      ]);
       $fresh = $comment->fresh(['commentLikes']);
 
       DB::afterCommit(static function () use ($memory, $fresh): void {

@@ -33,6 +33,8 @@ class MemoryCommentResource extends JsonResource
       'ownerDeviceId' => $this->owner_device_id ?? '',
       'ownerActorKey' => $this->owner_actor_key ?? '',
       'createdAtMs' => $this->created_at_ms,
+      'isEdited' => (bool) $this->edited_at,
+      'editedAt' => optional($this->edited_at)->toIso8601String(),
     ];
   }
 }

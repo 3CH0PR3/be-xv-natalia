@@ -28,7 +28,10 @@ class UpdateMemoryCaptionAction
         );
       }
 
-      $memory->update(['caption' => $data->caption]);
+      $memory->update([
+        'caption' => $data->caption,
+        'caption_edited_at' => now(),
+      ]);
       $fresh = $memory->fresh(['mediaItems', 'reactions', 'comments.commentLikes']);
 
       DB::afterCommit(static function () use ($memory, $fresh): void {

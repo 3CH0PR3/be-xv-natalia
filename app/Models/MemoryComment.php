@@ -19,6 +19,7 @@ class MemoryComment extends Model
     'author',
     'table_label',
     'text',
+    'edited_at',
     'owner_device_id',
     'owner_actor_key',
     'likes_count',
@@ -30,6 +31,7 @@ class MemoryComment extends Model
     return [
       'likes_count' => 'integer',
       'created_at_ms' => 'integer',
+      'edited_at' => 'datetime',
     ];
   }
 

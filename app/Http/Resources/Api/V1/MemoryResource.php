@@ -50,6 +50,8 @@ class MemoryResource extends JsonResource
         : [],
       'timestampMs' => $this->timestamp_ms,
       'createdAt' => optional($this->created_at)->toIso8601String(),
+      'isEdited' => (bool) $this->caption_edited_at,
+      'captionEditedAt' => optional($this->caption_edited_at)->toIso8601String(),
     ];
   }
 }
