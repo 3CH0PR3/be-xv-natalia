@@ -15,6 +15,7 @@ return new class extends Migration {
       $table->string('author', 80);
       $table->string('table_label', 80);
       $table->string('text', 500);
+      $table->timestamp('edited_at')->nullable();
       $table->string('owner_device_id', 128)->nullable();
       $table->string('owner_actor_key', 128)->nullable();
       $table->unsignedInteger('likes_count')->default(0);

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Memory;
+use App\Models\MemoryReaction;
 use Illuminate\Support\Facades\Redis;
 use Throwable;
 
@@ -29,6 +30,28 @@ class MemoryReactionCounterService
         self::PREFIX . $memoryId . ':cheers',
       ];
       $vals = Redis::mGet($keys);
+
+      $isRedisEmpty = ($vals[0] === null || $vals[0] === false)
+        && ($vals[1] === null || $vals[1] === false)
+        && ($vals[2] === null || $vals[2] === false);
+
+      if ($isRedisEmpty) {
+        if ($defaultLikes === 0 && $defaultFires === 0 && $defaultCheers === 0 && $memoryId > 0) {
+          $defaultLikes = MemoryReaction::where('memory_id', $memoryId)->where('choice', 'likes')->count();
+          $defaultFires = MemoryReaction::where('memory_id', $memoryId)->where('choice', 'fires')->count();
+          $defaultCheers = MemoryReaction::where('memory_id', $memoryId)->where('choice', 'cheers')->count();
+        }
+
+        try {
+          Redis::setEx(self::PREFIX . $memoryId . ':likes', self::TTL_SECONDS, $defaultLikes);
+          Redis::setEx(self::PREFIX . $memoryId . ':fires', self::TTL_SECONDS, $defaultFires);
+          Redis::setEx(self::PREFIX . $memoryId . ':cheers', self::TTL_SECONDS, $defaultCheers);
+        } catch (Throwable) {
+          // ignore
+        }
+
+        return ['likes' => $defaultLikes, 'fires' => $defaultFires, 'cheers' => $defaultCheers];
+      }
 
       $likes = $vals[0] !== null && $vals[0] !== false ? max(0, (int) $vals[0]) : $defaultLikes;
       $fires = $vals[1] !== null && $vals[1] !== false ? max(0, (int) $vals[1]) : $defaultFires;

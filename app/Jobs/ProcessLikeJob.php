@@ -48,13 +48,13 @@ class ProcessLikeJob implements ShouldQueue
       $likes = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'likes')->count();
       $fires = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'fires')->count();
       $cheers = MemoryReaction::where('memory_id', $memory->id)->where('choice', 'cheers')->count();
-
-      $memory->update([
-        'likes_count' => $likes,
-        'fires_count' => $fires,
-        'cheers_count' => $cheers,
-      ]);
     }
+
+    $memory->update([
+      'likes_count' => $likes,
+      'fires_count' => $fires,
+      'cheers_count' => $cheers,
+    ]);
 
     Cache::store('redis')->forget("memory:{$memory->external_id}");
     $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");

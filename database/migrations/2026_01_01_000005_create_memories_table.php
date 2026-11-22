@@ -19,6 +19,7 @@ return new class extends Migration {
       $table->string('owner_actor_key', 128)->nullable();
       $table->string('moment_tag', 60)->default('Fiesta en Vivo');
       $table->string('caption', 600)->nullable();
+      $table->timestamp('caption_edited_at')->nullable();
       $table->enum('media_type', ['image', 'video'])->default('image');
       $table->enum('status', ['approved', 'pending', 'rejected', 'hidden'])->default('approved');
       $table->unsignedInteger('likes_count')->default(0);
