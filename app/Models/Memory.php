@@ -72,10 +72,10 @@ class Memory extends Model
 
   public function getResolvedAvatarUrlAttribute(): ?string
   {
-    if ($this->relationLoaded('deviceLock') && $this->deviceLock) {
+    if ($this->relationLoaded('deviceLock') && $this->deviceLock?->avatar_url) {
       return $this->deviceLock->avatar_url;
     }
-    if ($this->device_lock_id && $this->deviceLock) {
+    if ($this->device_lock_id && $this->deviceLock?->avatar_url) {
       return $this->deviceLock->avatar_url;
     }
     if ($this->owner_actor_key || $this->owner_device_id || $this->guest_name) {
@@ -91,8 +91,13 @@ class Memory extends Model
             $q->orWhere('guest_name', $this->guest_name);
           }
         })
+        ->whereNotNull('avatar_path')
+        ->latest('id')
         ->first();
-      return $lock?->avatar_url;
+
+      if ($lock?->avatar_url) {
+        return $lock->avatar_url;
+      }
     }
     return null;
   }

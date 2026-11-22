@@ -84,6 +84,21 @@ class UpdateProfileAction
 
     $lock->save();
 
+    // Sincronizar retroactivamente el device_lock_id en recuerdos creados por este invitado
+    \App\Models\Memory::forEvent($lock->event_id)
+      ->where(function (Builder $q) use ($lock): void {
+        if ($lock->actor_key) {
+          $q->orWhere('owner_actor_key', $lock->actor_key);
+        }
+        if ($lock->device_id) {
+          $q->orWhere('owner_device_id', $lock->device_id);
+        }
+        if ($lock->guest_name) {
+          $q->orWhere('guest_name', $lock->guest_name);
+        }
+      })
+      ->update(['device_lock_id' => $lock->id]);
+
     // Invalidar caché de perfil en Redis
     $this->scanAndDelete("profile:data:{$lock->event_id}:{$lock->id}:*");
 
