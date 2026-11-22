@@ -31,18 +31,21 @@ class MemoryObserver
   {
     Cache::store('redis')->forget("memory:{$memory->external_id}");
     $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+    $this->scanAndDelete("profile:data:{$memory->event_id}:*");
   }
 
   public function updated(Memory $memory): void
   {
     Cache::store('redis')->forget("memory:{$memory->external_id}");
     $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+    $this->scanAndDelete("profile:data:{$memory->event_id}:*");
   }
 
   public function deleting(Memory $memory): void
   {
     Cache::store('redis')->forget("memory:{$memory->external_id}");
     $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+    $this->scanAndDelete("profile:data:{$memory->event_id}:*");
 
     // Collect file paths before CASCADE delete from database
     $filesByDisk = $memory->mediaItems()

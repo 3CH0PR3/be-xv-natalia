@@ -59,10 +59,15 @@ class GetProfileAction
     $lock = $query->first();
 
     if (!$lock) {
-      // Si se busca por nombre en memorias cuando no hay lock
+      // Si se busca por nombre o identificador en memorias cuando no hay lock
       if ($targetIdentifier !== null && trim($targetIdentifier) !== '') {
+        $trimmed = trim($targetIdentifier);
         $firstMem = Memory::where('event_id', $event->id)
-          ->where('guest_name', trim($targetIdentifier))
+          ->where(function (Builder $q) use ($trimmed): void {
+            $q->where('guest_name', $trimmed)
+              ->orWhere('owner_actor_key', $trimmed)
+              ->orWhere('owner_device_id', $trimmed);
+          })
           ->first();
 
         if ($firstMem) {
@@ -116,6 +121,9 @@ class GetProfileAction
             }
             if ($lock->device_id) {
               $sub->orWhere('owner_device_id', $lock->device_id);
+            }
+            if ($lock->guest_name) {
+              $sub->orWhere('guest_name', $lock->guest_name);
             }
           });
       })
@@ -178,7 +186,17 @@ class GetProfileAction
              ($viewerActorKey && $memory->owner_actor_key === $viewerActorKey);
 
     $memories = Memory::forEvent($memory->event_id)
-      ->where('guest_name', $memory->guest_name)
+      ->where(function (Builder $q) use ($memory): void {
+        if ($memory->guest_name) {
+          $q->orWhere('guest_name', $memory->guest_name);
+        }
+        if ($memory->owner_actor_key) {
+          $q->orWhere('owner_actor_key', $memory->owner_actor_key);
+        }
+        if ($memory->owner_device_id) {
+          $q->orWhere('owner_device_id', $memory->owner_device_id);
+        }
+      })
       ->where('status', Memory::STATUS_APPROVED)
       ->with(['mediaItems', 'reactions'])
       ->withCount(['comments', 'shares'])

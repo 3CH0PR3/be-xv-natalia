@@ -150,5 +150,15 @@ class ProfileTest extends TestCase
       ->assertJsonPath('data.isOwnProfile', false)
       ->assertJsonPath('data.stats.totalMemories', 1)
       ->assertJsonCount(1, 'data.memories');
+
+    // Guest 2 views Guest 1's profile by name slug
+    $slugRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-other-viewer',
+      'X-Actor-Key' => 'actor-other-viewer',
+    ])->getJson('/api/v1/profile/andres-hernandez');
+
+    $slugRes->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Andres Hernandez')
+      ->assertJsonPath('data.stats.totalMemories', 1);
   }
 }
