@@ -30,11 +30,22 @@ class ProcessMemoryJob implements ShouldQueue
   public function handle(): void
   {
     $memory = Memory::with([
-      'deviceLock:id,guest_name',
+      'deviceLock:id,guest_name,
+      avatar_path,
+      cover_path,
+      actor_key,
+      device_id,
+      updated_at',
       'event',
       'mediaItems',
       'reactions',
-      'comments.deviceLock:id,guest_name',
+      'comments.deviceLock:id,
+      guest_name,
+      avatar_path,
+      cover_path,
+      actor_key,
+      device_id,
+      updated_at',
       'comments.commentLikes',
     ])->find($this->memoryId);
     if (!$memory) {

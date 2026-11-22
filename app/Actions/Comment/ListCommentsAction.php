@@ -16,7 +16,7 @@ class ListCommentsAction
       "memory:comments:{$memory->id}",
       120,
       fn () => $memory->comments()
-        ->with(['deviceLock:id,guest_name,avatar_path,actor_key,device_id', 'commentLikes'])
+        ->with(['deviceLock:id,guest_name,avatar_path,cover_path,actor_key,device_id,updated_at', 'commentLikes'])
         ->ordered()
         ->get()
     );

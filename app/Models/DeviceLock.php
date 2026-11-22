@@ -117,19 +117,23 @@ class DeviceLock extends Model
   {
     if (!$this->avatar_path) return null;
     $identifier = $this->actor_key ?: $this->id;
+    $v = $this->updated_at?->timestamp ?? $this->created_at?->timestamp;
+    $query = $v ? "?v={$v}" : '';
     if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
-      return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/avatar";
+      return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/avatar{$query}";
     }
-    return Storage::disk(config('xv.media_disk', 'public'))->url($this->avatar_path);
+    return Storage::disk(config('xv.media_disk', 'public'))->url($this->avatar_path) . $query;
   }
 
   public function getCoverUrlAttribute(): ?string
   {
     if (!$this->cover_path) return null;
     $identifier = $this->actor_key ?: $this->id;
+    $v = $this->updated_at?->timestamp ?? $this->created_at?->timestamp;
+    $query = $v ? "?v={$v}" : '';
     if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
-      return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/cover";
+      return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/cover{$query}";
     }
-    return Storage::disk(config('xv.media_disk', 'public'))->url($this->cover_path);
+    return Storage::disk(config('xv.media_disk', 'public'))->url($this->cover_path) . $query;
   }
 }

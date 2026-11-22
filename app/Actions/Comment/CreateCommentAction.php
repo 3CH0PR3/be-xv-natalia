@@ -9,6 +9,7 @@ use App\Jobs\ProcessCommentJob;
 use App\Models\DeviceLock;
 use App\Models\Memory;
 use App\Models\MemoryComment;
+use App\Services\CommentLikeCounterService;
 use Illuminate\Support\Facades\DB;
 
 class CreateCommentAction
@@ -46,9 +47,9 @@ class CreateCommentAction
         'likes_count' => 0,
       ]);
 
-      app(\App\Services\CommentLikeCounterService::class)->set($comment->id, 0);
+      app(CommentLikeCounterService::class)->set($comment->id, 0);
 
-      $fresh = $comment->fresh(['deviceLock:id,guest_name,avatar_path,actor_key,device_id', 'commentLikes']);
+      $fresh = $comment->fresh(['deviceLock:id,guest_name,avatar_path,cover_path,actor_key,device_id,updated_at', 'commentLikes']);
       $nextCount = (int) $memory->fresh()->comments_count;
 
       DB::afterCommit(static function () use ($comment): void {

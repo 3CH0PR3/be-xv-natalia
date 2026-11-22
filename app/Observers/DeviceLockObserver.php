@@ -26,7 +26,7 @@ class DeviceLockObserver
     Cache::store('redis')->forget("device:lock:{$lock->device_id}");
     $this->scanAndDelete("profile:data:{$lock->event_id}:{$lock->id}:*");
 
-    if ($lock->wasChanged('guest_name')) {
+    if ($lock->wasChanged('guest_name') || $lock->wasChanged('avatar_path')) {
       $this->scanAndDelete("memories:feed:event:{$lock->event_id}:*");
       $this->scanAndDelete("memory:comments:*");
     }

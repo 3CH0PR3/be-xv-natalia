@@ -37,6 +37,9 @@ class CreateMemoryAction
             if ($data->ownerDeviceId) {
               $q->orWhere('device_id', $data->ownerDeviceId);
             }
+            if ($data->guestName) {
+              $q->orWhere('guest_name', $data->guestName);
+            }
           })
           ->first();
         $deviceLockId = $deviceLock?->id;
@@ -91,7 +94,18 @@ class CreateMemoryAction
         $mediaItemIds[] = $mediaItem->id;
       }
 
-      $freshMemory = $memory->fresh(['deviceLock:id,guest_name', 'mediaItems', 'reactions', 'comments.commentLikes']);
+      $freshMemory = $memory->fresh([
+        'deviceLock:id,
+        guest_name,
+        avatar_path,
+        cover_path,
+        actor_key,
+        device_id,
+        updated_at',
+        'mediaItems',
+        'reactions',
+        'comments.commentLikes'
+      ]);
 
       DB::afterCommit(static function () use ($freshMemory): void {
         // Dispatch async job for notifications, media optimization, caching & broadcasting

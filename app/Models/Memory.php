@@ -70,6 +70,33 @@ class Memory extends Model
     return $this->deviceLock?->guest_name ?? $this->guest_name ?? '';
   }
 
+  public function getResolvedAvatarUrlAttribute(): ?string
+  {
+    if ($this->relationLoaded('deviceLock') && $this->deviceLock) {
+      return $this->deviceLock->avatar_url;
+    }
+    if ($this->device_lock_id && $this->deviceLock) {
+      return $this->deviceLock->avatar_url;
+    }
+    if ($this->owner_actor_key || $this->owner_device_id || $this->guest_name) {
+      $lock = DeviceLock::forEvent($this->event_id ?: 1)
+        ->where(function (Builder $q): void {
+          if ($this->owner_actor_key) {
+            $q->orWhere('actor_key', $this->owner_actor_key);
+          }
+          if ($this->owner_device_id) {
+            $q->orWhere('device_id', $this->owner_device_id);
+          }
+          if ($this->guest_name) {
+            $q->orWhere('guest_name', $this->guest_name);
+          }
+        })
+        ->first();
+      return $lock?->avatar_url;
+    }
+    return null;
+  }
+
   public function mediaItems(): HasMany
   {
     return $this->hasMany(MemoryMediaItem::class)->orderBy('sort_order');
@@ -165,9 +192,9 @@ class Memory extends Model
   public function scopeWithWallRelations(Builder $query, ?string $viewerActorKey = null, ?string $viewerDeviceId = null): Builder
   {
     return $query->with([
-      'deviceLock:id,guest_name,avatar_path,actor_key,device_id',
+      'deviceLock:id,guest_name,avatar_path,cover_path,actor_key,device_id,updated_at',
       'mediaItems',
-      'comments.deviceLock:id,guest_name,avatar_path,actor_key,device_id',
+      'comments.deviceLock:id,guest_name,avatar_path,cover_path,actor_key,device_id,updated_at',
       'comments.commentLikes' => static function ($q): void {
         $q->select(['id', 'comment_id', 'actor_key', 'device_id']);
       },

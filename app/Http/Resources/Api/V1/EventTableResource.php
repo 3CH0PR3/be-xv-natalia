@@ -17,6 +17,7 @@ class EventTableResource extends JsonResource
         'hwFingerprint' => $lock->hw_fingerprint ?? '',
         'guestName' => $lock->guest_name,
         'actorKey' => $lock->actor_key,
+        'avatarUrl' => $lock->avatar_url,
         'joinedAt' => optional($lock->locked_at ?? $lock->created_at)->toIso8601String(),
       ])->values()->all()
       : [];

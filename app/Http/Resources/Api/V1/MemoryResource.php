@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Services\MemoryReactionCounterService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,7 +23,7 @@ class MemoryResource extends JsonResource
     return [
       'id' => $this->external_id,
       'guestName' => $this->resolved_guest_name,
-      'avatarUrl' => $this->deviceLock?->avatar_url,
+      'avatarUrl' => $this->deviceLock?->avatar_url ?: $this->resolved_avatar_url,
       'tableCode' => $this->table_code,
       'ownerDeviceId' => $this->owner_device_id ?? '',
       'ownerActorKey' => $this->owner_actor_key ?? '',
@@ -35,9 +36,9 @@ class MemoryResource extends JsonResource
       'posterUrl' => $cover['posterUrl'] ?? '',
       'mediaItems' => $items,
       'status' => $this->status,
-      'likes' => $this->id ? app(\App\Services\MemoryReactionCounterService::class)->getCounts($this->id, ['likes' => (int) ($this->likes_count ?? 0), 'fires' => (int) ($this->fires_count ?? 0), 'cheers' => (int) ($this->cheers_count ?? 0)])['likes'] : (int) ($this->likes_count ?? 0),
-      'fires' => $this->id ? app(\App\Services\MemoryReactionCounterService::class)->getCounts($this->id, ['likes' => (int) ($this->likes_count ?? 0), 'fires' => (int) ($this->fires_count ?? 0), 'cheers' => (int) ($this->cheers_count ?? 0)])['fires'] : (int) ($this->fires_count ?? 0),
-      'cheers' => $this->id ? app(\App\Services\MemoryReactionCounterService::class)->getCounts($this->id, ['likes' => (int) ($this->likes_count ?? 0), 'fires' => (int) ($this->fires_count ?? 0), 'cheers' => (int) ($this->cheers_count ?? 0)])['cheers'] : (int) ($this->cheers_count ?? 0),
+      'likes' => $this->id ? app(MemoryReactionCounterService::class)->getCounts($this->id, ['likes' => (int) ($this->likes_count ?? 0), 'fires' => (int) ($this->fires_count ?? 0), 'cheers' => (int) ($this->cheers_count ?? 0)])['likes'] : (int) ($this->likes_count ?? 0),
+      'fires' => $this->id ? app(MemoryReactionCounterService::class)->getCounts($this->id, ['likes' => (int) ($this->likes_count ?? 0), 'fires' => (int) ($this->fires_count ?? 0), 'cheers' => (int) ($this->cheers_count ?? 0)])['fires'] : (int) ($this->fires_count ?? 0),
+      'cheers' => $this->id ? app(MemoryReactionCounterService::class)->getCounts($this->id, ['likes' => (int) ($this->likes_count ?? 0), 'fires' => (int) ($this->fires_count ?? 0), 'cheers' => (int) ($this->cheers_count ?? 0)])['cheers'] : (int) ($this->cheers_count ?? 0),
       'shares' => $this->shares_count,
       'sharesCount' => $this->shares_count,
       'likedByMe' => $myChoice === 'likes',
