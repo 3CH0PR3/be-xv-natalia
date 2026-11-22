@@ -162,35 +162,24 @@ class ProfileTest extends TestCase
       ->assertJsonPath('data.stats.totalMemories', 1);
   }
 
-  public function test_public_profile_synthesizes_graceful_fallback_for_guest_without_memories_or_lock(): void
+  public function test_profile_returns_404_for_unregistered_guest_or_missing_profile(): void
   {
-    // 1. Consulta pública por slug 'invitado' sin registros previos
+    // 1. Consulta pública por slug 'invitado' sin registros previos debe dar 404
     $invitadoRes = $this->getJson('/api/v1/profile/invitado');
-    $invitadoRes->assertStatus(200)
-      ->assertJsonPath('data.guestName', 'Invitado')
-      ->assertJsonPath('data.isOwnProfile', false)
-      ->assertJsonPath('data.stats.totalMemories', 0)
-      ->assertJsonCount(0, 'data.memories');
+    $invitadoRes->assertStatus(404);
 
-    // 2. Consulta pública por nombre de usuario sin fotos previas
+    // 2. Consulta pública por nombre de usuario sin fotos ni registro debe dar 404
     $namedRes = $this->getJson('/api/v1/profile/valeria-gomez');
-    $namedRes->assertStatus(200)
-      ->assertJsonPath('data.guestName', 'Valeria Gomez')
-      ->assertJsonPath('data.isOwnProfile', false)
-      ->assertJsonPath('data.stats.totalMemories', 0);
+    $namedRes->assertStatus(404);
 
-    // 3. Consulta de perfil propio sin sesión activa
+    // 3. Consulta de perfil propio sin sesión activa debe dar 404
     $unauthedRes = $this->getJson('/api/v1/profile');
-    $unauthedRes->assertStatus(200)
-      ->assertJsonPath('data.guestName', 'Invitado')
-      ->assertJsonPath('data.isOwnProfile', false);
+    $unauthedRes->assertStatus(404);
 
-    // 4. Consulta de perfil propio con dispositivo no registrado en device_locks
+    // 4. Consulta de perfil propio con dispositivo no registrado en device_locks debe dar 404
     $unregisteredDeviceRes = $this->withHeaders([
       'X-Device-Id' => 'dev-random-unregistered-device-1234',
     ])->getJson('/api/v1/profile');
-    $unregisteredDeviceRes->assertStatus(200)
-      ->assertJsonPath('data.guestName', 'Invitado')
-      ->assertJsonPath('data.isOwnProfile', false);
+    $unregisteredDeviceRes->assertStatus(404);
   }
 }

@@ -45,7 +45,7 @@ class GetProfileAction
       });
     } else {
       if (!$viewerDeviceId && !$viewerActorKey) {
-        return $this->buildFallbackGuestProfile('invitado', null, null);
+        throw new NotFoundHttpException('No hay sesión de invitado activa para consultar el perfil.');
       }
       $query->where(function (Builder $q) use ($viewerDeviceId, $viewerActorKey): void {
         if ($viewerActorKey) {
@@ -60,7 +60,7 @@ class GetProfileAction
     $lock = $query->first();
 
     if (!$lock) {
-      // Si se busca por nombre o identificador cuando no hay lock en device_locks
+      // Si se busca por nombre o identificador cuando no hay lock en device_locks pero sí memorias
       if ($targetIdentifier !== null && trim($targetIdentifier) !== '') {
         $trimmed = trim($targetIdentifier);
         $cleanSlug = DeviceLock::normalizeSlug($trimmed);
@@ -81,13 +81,11 @@ class GetProfileAction
           return $this->buildFallbackProfileFromMemory($firstMem, $viewerDeviceId, $viewerActorKey);
         }
 
-        // Si no hay recuerdos aún (ej. invitado que solo comentó o no ha publicado fotos),
-        // sintetizar perfil limpio al estilo Facebook / Instagram sin pantalla de error 404
-        return $this->buildFallbackGuestProfile($trimmed, $viewerDeviceId, $viewerActorKey);
+        throw new NotFoundHttpException('El perfil solicitado no fue encontrado.');
       }
 
-      // Si se solicita el perfil propio (/perfil) sin tener sesión activa iniciada (o dispositivo aún no registrado)
-      return $this->buildFallbackGuestProfile('invitado', $viewerDeviceId, $viewerActorKey);
+      // Si se solicita el perfil propio (/perfil) sin tener sesión activa iniciada o no encontrada
+      throw new NotFoundHttpException('El perfil solicitado no fue encontrado.');
     }
 
     $page = app()->bound('request') ? (int) app('request')->query('page', 1) : 1;
@@ -246,48 +244,6 @@ class GetProfileAction
         'hasMore' => ($offset + $perPage) < $memories->count(),
       ],
       'memories' => MemoryResource::collection($pagedMemories)->resolve($request),
-    ];
-  }
-
-  private function buildFallbackGuestProfile(string $identifier, ?string $viewerDeviceId, ?string $viewerActorKey): array
-  {
-    $formattedName = Str::of($identifier)
-      ->replace(['-', '_'], ' ')
-      ->title()
-      ->toString();
-
-    if (strtolower($identifier) === 'invitado' || strtolower($identifier) === 'guest') {
-      $formattedName = 'Invitado';
-    }
-
-    $isOwn = ($viewerDeviceId && $identifier === $viewerDeviceId) ||
-             ($viewerActorKey && $identifier === $viewerActorKey);
-
-    return [
-      'id' => $identifier,
-      'numericId' => 0,
-      'guestName' => $formattedName,
-      'tableCode' => 'Mesa del Evento',
-      'tableName' => 'Invitado',
-      'avatarUrl' => null,
-      'coverUrl' => null,
-      'bio' => 'Invitado especial de los 15 años de Natalia Isabella',
-      'location' => '',
-      'joinedAt' => now()->toIso8601String(),
-      'isOwnProfile' => $isOwn,
-      'stats' => [
-        'totalMemories' => 0,
-        'totalPhotos' => 0,
-        'totalVideos' => 0,
-        'totalReactions' => 0,
-      ],
-      'pagination' => [
-        'page' => 1,
-        'perPage' => 10,
-        'total' => 0,
-        'hasMore' => false,
-      ],
-      'memories' => [],
     ];
   }
 }
