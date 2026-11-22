@@ -143,6 +143,30 @@ class DynamicQrAndHostDashboardTest extends TestCase
     $res->assertStatus(200);
     $this->assertTrue($res->json('data.isValid'));
     $this->assertSame($table->code, $res->json('data.table.code'));
+
+    // Test relative URL payload
+    $resRel = $this->postJson('/api/v1/tables/validate-qr', [
+      'eventCode' => 'XV-NATALIA',
+      'rawPayload' => "/acceso?mesa={$table->slug}&token={$table->qr_token}",
+    ]);
+    $resRel->assertStatus(200);
+    $this->assertTrue($resRel->json('data.isValid'));
+
+    // Test hash / fragment URL payload
+    $resHash = $this->postJson('/api/v1/tables/validate-qr', [
+      'eventCode' => 'XV-NATALIA',
+      'rawPayload' => "https://xv-natalia-isabela.com/#/acceso?mesa={$table->slug}&token={$table->qr_token}",
+    ]);
+    $resHash->assertStatus(200);
+    $this->assertTrue($resHash->json('data.isValid'));
+
+    // Test JSON payload
+    $resJson = $this->postJson('/api/v1/tables/validate-qr', [
+      'eventCode' => 'XV-NATALIA',
+      'rawPayload' => json_encode(['mesa' => $table->slug, 'token' => $table->qr_token]),
+    ]);
+    $resJson->assertStatus(200);
+    $this->assertTrue($resJson->json('data.isValid'));
   }
 
   public function test_qr_validation_rejects_unknown_table_or_other_event(): void
