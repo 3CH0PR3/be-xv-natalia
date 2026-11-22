@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\MonitoringAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -106,16 +107,13 @@ class AppServiceProvider extends ServiceProvider
       ]);
     });
 
-    // Dashboards de Monitoreo (Horizon y Pulse) protegidos por Host PIN
+    // Dashboards de Monitoreo (Horizon y Pulse) protegidos por Host PIN con persistencia de sesión
     Horizon::auth(function ($request): bool {
-      $expectedPin = (string) config('xv.host_pin', '1515');
-      return $expectedPin !== '' && $request->hostPin() === $expectedPin;
+      return MonitoringAuthService::authorize($request);
     });
 
     Gate::define('viewPulse', function ($user = null): bool {
-      $request = request();
-      $expectedPin = (string) config('xv.host_pin', '1515');
-      return $expectedPin !== '' && $request->hostPin() === $expectedPin;
+      return MonitoringAuthService::authorize(request());
     });
   }
 }
