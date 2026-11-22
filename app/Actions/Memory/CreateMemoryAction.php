@@ -102,7 +102,26 @@ class CreateMemoryAction
       ]);
 
       DB::afterCommit(static function () use ($freshMemory): void {
-        // Dispatch async job for notifications, media optimization, caching & broadcasting
+        try {
+          $eventCode = $freshMemory->event?->code ?? (string) config('xv.default_event_code', 'XV-NATALIA');
+          $payload = (new \App\Http\Resources\Api\V1\MemoryResource($freshMemory))->resolve();
+          broadcast(new \App\Events\MemoryCreated($eventCode, $payload));
+        } catch (\Throwable $e) {
+          \Illuminate\Support\Facades\Log::warning('Direct broadcast of MemoryCreated failed: ' . $e->getMessage());
+        }
+
+        try {
+          \Illuminate\Support\Facades\Cache::store('redis')->forget("memory:{$freshMemory->external_id}");
+          $redis = \Illuminate\Support\Facades\Cache::store('redis')->getRedis();
+          $keys = $redis->keys("memories:feed:event:{$freshMemory->event_id}:*");
+          if (!empty($keys)) {
+            $redis->del($keys);
+          }
+        } catch (\Throwable) {
+          // Fallback silencioso si redis no está configurado o no disponible
+        }
+
+        // Dispatch async job for notifications & media optimization
         ProcessMemoryJob::dispatch($freshMemory->id);
       });
 
