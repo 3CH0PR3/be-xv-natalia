@@ -161,4 +161,36 @@ class ProfileTest extends TestCase
       ->assertJsonPath('data.guestName', 'Andres Hernandez')
       ->assertJsonPath('data.stats.totalMemories', 1);
   }
+
+  public function test_public_profile_synthesizes_graceful_fallback_for_guest_without_memories_or_lock(): void
+  {
+    // 1. Consulta pública por slug 'invitado' sin registros previos
+    $invitadoRes = $this->getJson('/api/v1/profile/invitado');
+    $invitadoRes->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Invitado')
+      ->assertJsonPath('data.isOwnProfile', false)
+      ->assertJsonPath('data.stats.totalMemories', 0)
+      ->assertJsonCount(0, 'data.memories');
+
+    // 2. Consulta pública por nombre de usuario sin fotos previas
+    $namedRes = $this->getJson('/api/v1/profile/valeria-gomez');
+    $namedRes->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Valeria Gomez')
+      ->assertJsonPath('data.isOwnProfile', false)
+      ->assertJsonPath('data.stats.totalMemories', 0);
+
+    // 3. Consulta de perfil propio sin sesión activa
+    $unauthedRes = $this->getJson('/api/v1/profile');
+    $unauthedRes->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Invitado')
+      ->assertJsonPath('data.isOwnProfile', false);
+
+    // 4. Consulta de perfil propio con dispositivo no registrado en device_locks
+    $unregisteredDeviceRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-random-unregistered-device-1234',
+    ])->getJson('/api/v1/profile');
+    $unregisteredDeviceRes->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Invitado')
+      ->assertJsonPath('data.isOwnProfile', false);
+  }
 }

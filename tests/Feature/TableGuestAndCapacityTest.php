@@ -52,8 +52,11 @@ class TableGuestAndCapacityTest extends TestCase
       ->assertJsonPath('success', true)
       ->assertJsonStructure(['success', 'code', 'data']);
 
-    $this->assertDatabaseMissing('device_locks', [
+    // La mesa libera el cupo (event_table_id ya no apunta a la mesa)
+    // pero la identidad y perfil del invitado se preservan según su huella
+    $this->assertDatabaseHas('device_locks', [
       'device_id' => 'dev-expel-test-1',
+      'event_table_id' => null,
     ]);
   }
 
@@ -77,8 +80,9 @@ class TableGuestAndCapacityTest extends TestCase
     $expel->assertStatus(200)
       ->assertJsonPath('success', true);
 
-    $this->assertDatabaseMissing('device_locks', [
+    $this->assertDatabaseHas('device_locks', [
       'device_id' => 'dev-expel-test-2',
+      'event_table_id' => null,
     ]);
   }
 
@@ -101,8 +105,9 @@ class TableGuestAndCapacityTest extends TestCase
     $expel->assertStatus(200)
       ->assertJsonPath('success', true);
 
-    $this->assertDatabaseMissing('device_locks', [
+    $this->assertDatabaseHas('device_locks', [
       'device_id' => 'dev-expel-test-3',
+      'event_table_id' => null,
     ]);
   }
 

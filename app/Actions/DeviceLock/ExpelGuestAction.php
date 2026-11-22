@@ -33,7 +33,12 @@ class ExpelGuestAction
       }
 
       $expelledDeviceId = $lock->device_id;
-      $lock->delete();
+      // Desvincular de la mesa liberando el puesto en el salón, pero preservando
+      // la huella digital del teléfono, perfil (avatar, bio) y recuerdos en base de datos
+      $lock->update([
+        'event_table_id' => null,
+        'locked_at' => null,
+      ]);
 
       DB::afterCommit(static function () use ($expelledDeviceId, $table): void {
         broadcast(new GuestExpelled($expelledDeviceId, $table->code));

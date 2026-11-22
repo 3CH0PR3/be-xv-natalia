@@ -100,6 +100,49 @@ class TableAndCheckinTest extends TestCase
       ->assertJsonPath('code', 'DEVICE_LOCKED_OTHER_TABLE');
   }
 
+  public function test_cannot_self_reassign_and_can_checkin_new_table_only_after_hostess_unassigns(): void
+  {
+    $payload1 = [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Daniela Morales',
+      'deviceId' => 'device-daniela-transfer',
+      'hwFingerprint' => 'v2_fpdaniela12345',
+    ];
+    $this->postJson('/api/v1/checkin', $payload1)->assertStatus(201);
+
+    // 1. El usuario intenta registrarse en Mesa 02 por su cuenta: siempre rechazado con 409
+    $transferPayload = [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 02 · Orquídea',
+      'guestName' => 'Daniela Morales',
+      'deviceId' => 'device-daniela-transfer',
+      'hwFingerprint' => 'v2_fpdaniela12345',
+    ];
+    $this->postJson('/api/v1/checkin', $transferPayload)
+      ->assertStatus(409)
+      ->assertJsonPath('code', 'DEVICE_LOCKED_OTHER_TABLE');
+
+    // 2. Anfitriona desvincula a Daniela de Mesa 01 (libera el puesto en el salón)
+    $this->withHeaders(['X-Host-Pin' => '1515'])
+      ->postJson('/api/v1/tables/expel', [
+        'eventCode' => 'XV-NATALIA',
+        'tableId' => 'mesa-01',
+        'deviceId' => 'device-daniela-transfer',
+      ])->assertStatus(200);
+
+    // El registro de bloqueo sigue existiendo pero con event_table_id = null
+    $this->assertDatabaseHas('device_locks', [
+      'device_id' => 'device-daniela-transfer',
+      'event_table_id' => null,
+    ]);
+
+    // 3. Una vez liberada por la anfitriona, Daniela escanea Mesa 02 y se registra conservando su perfil
+    $reassignRes = $this->postJson('/api/v1/checkin', $transferPayload);
+    $reassignRes->assertStatus(201)
+      ->assertJsonPath('data.tableCode', 'Mesa 02 · Orquídea');
+  }
+
   public function test_can_resolve_device_lock(): void
   {
     $payload = [

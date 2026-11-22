@@ -66,19 +66,24 @@ class CheckinGuestAction
         $data->hardwareSummary
       );
 
-      if ($existingLock && !$existingLock->belongsToTable($lockedTable->id)) {
+      $isAssignedToOtherTable = $existingLock &&
+        $existingLock->event_table_id !== null &&
+        !$existingLock->belongsToTable($lockedTable->id);
+
+      if ($isAssignedToOtherTable) {
         throw new DomainRuleException(
           'DEVICE_LOCKED_OTHER_TABLE',
-          "Este dispositivo ya pertenece a {$existingLock->table->code}. No puedes cambiarte ni registrarte en otra mesa.",
+          "Este dispositivo ya pertenece a {$existingLock->table?->code}. No puedes cambiarte ni registrarte en otra mesa.",
           409,
           [
-            'lockedTableCode' => $existingLock->table->code,
+            'lockedTableCode' => $existingLock->table?->code,
             'restoredLock' => (new DeviceLockResource($existingLock, true))->resolve(),
           ]
         );
       }
 
-      if (!$existingLock && !$lockedTable->hasAvailableSlot()) {
+      $isTakingNewSlot = !$existingLock || !$existingLock->belongsToTable($lockedTable->id);
+      if ($isTakingNewSlot && !$lockedTable->hasAvailableSlot()) {
         throw new DomainRuleException(
           'TABLE_FULL',
           "{$lockedTable->code} ya alcanzó su capacidad máxima de {$lockedTable->capacity} personas registradas.",

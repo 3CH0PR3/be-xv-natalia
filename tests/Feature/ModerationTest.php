@@ -71,8 +71,9 @@ class ModerationTest extends TestCase
       ->postJson('/api/v1/moderation/tables/expel', $expelPayload)
       ->assertStatus(200);
 
-    $this->assertDatabaseMissing('device_locks', [
+    $this->assertDatabaseHas('device_locks', [
       'device_id' => 'dev-bad-1',
+      'event_table_id' => null,
     ]);
   }
 
