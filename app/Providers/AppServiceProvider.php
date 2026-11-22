@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Horizon\Horizon;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -102,6 +104,18 @@ class AppServiceProvider extends ServiceProvider
         $this->query('pin'),
         $this->bearerToken(),
       ]);
+    });
+
+    // Dashboards de Monitoreo (Horizon y Pulse) protegidos por Host PIN
+    Horizon::auth(function ($request): bool {
+      $expectedPin = (string) config('xv.host_pin', '1515');
+      return $expectedPin !== '' && $request->hostPin() === $expectedPin;
+    });
+
+    Gate::define('viewPulse', function ($user = null): bool {
+      $request = request();
+      $expectedPin = (string) config('xv.host_pin', '1515');
+      return $expectedPin !== '' && $request->hostPin() === $expectedPin;
     });
   }
 }

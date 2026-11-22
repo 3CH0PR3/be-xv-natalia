@@ -8,6 +8,8 @@
         "php": "^8.2",
         "bacon/bacon-qr-code": "^3.1",
         "laravel/framework": "^11.0",
+        "laravel/horizon": "^5.51",
+        "laravel/pulse": "^1.10",
         "laravel/reverb": "^1.13",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
@@ -64,6 +66,10 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform": {
+            "ext-pcntl": "8.2",
+            "ext-posix": "8.2"
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
