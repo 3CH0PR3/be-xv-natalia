@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Events\MemoryReactionUpdated;
 use App\Models\Memory;
 use App\Models\MemoryReaction;
+use App\Support\Cache\Keys\EventKeys;
 use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -56,8 +57,8 @@ class ProcessLikeJob implements ShouldQueue
       'cheers_count' => $cheers,
     ]);
 
-    Cache::store('redis')->forget("memory:{$memory->external_id}");
-    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+    $this->forgetItem(EventKeys::memory($memory->external_id));
+    $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
 
     $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
 

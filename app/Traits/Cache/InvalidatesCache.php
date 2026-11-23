@@ -2,18 +2,28 @@
 
 namespace App\Traits\Cache;
 
+use App\Support\Cache\CacheVersion;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Trait for selective Redis cache invalidation using SCAN.
- * Replicates the pattern from be-gea-wrc.
+ * Trait for Redis cache invalidation (single-key, SCAN-based pattern, and version-scoped).
  */
 trait InvalidatesCache
 {
   protected function forgetItem(string $key): void
   {
-    Cache::store('redis')->forget($key);
+    Cache::forget($key);
+    try {
+      Cache::store('redis')->forget($key);
+    } catch (\Throwable) {
+      // Ignorar si redis no está configurado
+    }
+  }
+
+  protected function invalidateScope(string $scope, string $module): void
+  {
+    CacheVersion::bump($scope, $module);
   }
 
   protected function scanAndDelete(string $logicalPattern): void
@@ -31,7 +41,6 @@ trait InvalidatesCache
         }
       }
     } catch (\Throwable $e) {
-      // Log or fallback safely if Redis scan encounters connection issue
       Log::error('Redis scanAndDelete error: ' . $e->getMessage(), ['pattern' => $logicalPattern, 'exception' => $e]);
     }
   }

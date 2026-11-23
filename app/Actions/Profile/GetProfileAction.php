@@ -7,6 +7,8 @@ use App\Http\Resources\Api\V1\MemoryResource;
 use App\Models\DeviceLock;
 use App\Models\Event;
 use App\Models\Memory;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\CacheableCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -89,7 +91,7 @@ class GetProfileAction
     }
 
     $page = app()->bound('request') ? (int) app('request')->query('page', 1) : 1;
-    $cacheKey = "profile:data:{$event->id}:{$lock->id}:{$page}";
+    $cacheKey = EventKeys::profileData($event->id, $lock->id, $page);
 
     if (app()->environment('testing')) {
       $formatted = $this->formatProfileResponse($lock, $viewerDeviceId, $viewerActorKey);

@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Events\PartyCelebrated;
 use App\Models\Event;
 use App\Models\PartyReaction;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessPartyReactionJob implements ShouldQueue
 {
-  use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+  use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, InvalidatesCache;
 
   public int $tries = 3;
   public int $timeout = 30;
@@ -38,7 +40,7 @@ class ProcessPartyReactionJob implements ShouldQueue
 
     $nextCount = $this->resolveCountAndSyncDb($event);
 
-    Cache::store('redis')->forget("event:state:{$event->code}");
+    $this->forgetItem(EventKeys::eventState($event->code));
 
     $eventCode = $event->code ?? config('xv.default_event_code', 'XV-NATALIA');
 

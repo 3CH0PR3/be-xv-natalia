@@ -4,17 +4,20 @@ namespace App\Actions\Table;
 
 use App\Models\Event;
 use App\Models\EventTable;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\CacheableCache;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class ListTablesAction
 {
+  use CacheableCache;
+
   public function execute(string $eventCode): Collection
   {
     $event = Event::byCode($eventCode)->firstOrFail();
 
-    return Cache::store('redis')->remember(
-      "tables:event:{$event->id}",
+    return $this->remember(
+      EventKeys::tables($event->id),
       60,
       fn () => EventTable::with('deviceLocks')
         ->forEvent($event->id)

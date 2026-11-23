@@ -6,11 +6,14 @@ use App\DTOs\Event\TogglePartyCelebrateData;
 use App\Jobs\ProcessPartyReactionJob;
 use App\Models\Event;
 use App\Models\PartyReaction;
-use Illuminate\Support\Facades\Cache;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Support\Facades\DB;
 
 class TogglePartyCelebrateAction
 {
+  use InvalidatesCache;
+
   public function __construct(
     private readonly ResolveEventAction $resolveEvent,
   ) {}
@@ -43,7 +46,7 @@ class TogglePartyCelebrateAction
 
       $lockedEvent->update(['party_celebrations_count' => $nextCount]);
 
-      Cache::store('redis')->forget("event:state:{$lockedEvent->code}");
+      $this->forgetItem(EventKeys::eventState($lockedEvent->code));
 
       DB::afterCommit(static function () use ($lockedEvent, $nextCount, $data): void {
         ProcessPartyReactionJob::dispatch(

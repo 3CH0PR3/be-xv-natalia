@@ -6,6 +6,7 @@ use App\DTOs\Profile\UpdateProfileData;
 use App\Events\ProfileUpdated;
 use App\Jobs\ProcessProfileUpdateJob;
 use App\Models\DeviceLock;
+use App\Support\Cache\Keys\EventKeys;
 use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
@@ -84,23 +85,49 @@ class UpdateProfileAction
 
     $lock->save();
 
-    // Sincronizar retroactivamente el device_lock_id en recuerdos creados por este invitado
+    // Sincronizar retroactivamente el device_lock_id y el nombre en recuerdos creados por este invitado
+    $memoryUpdates = ['device_lock_id' => $lock->id];
+    if ($lock->guest_name) {
+      $memoryUpdates['guest_name'] = $lock->guest_name;
+    }
+
     \App\Models\Memory::forEvent($lock->event_id)
       ->where(function (Builder $q) use ($lock): void {
+        if ($lock->id) {
+          $q->orWhere('device_lock_id', $lock->id);
+        }
         if ($lock->actor_key) {
           $q->orWhere('owner_actor_key', $lock->actor_key);
         }
         if ($lock->device_id) {
           $q->orWhere('owner_device_id', $lock->device_id);
         }
-        if ($lock->guest_name) {
-          $q->orWhere('guest_name', $lock->guest_name);
+      })
+      ->update($memoryUpdates);
+
+    // Sincronizar retroactivamente el device_lock_id y autor en comentarios creados por este invitado
+    $commentUpdates = ['device_lock_id' => $lock->id];
+    if ($lock->guest_name) {
+      $commentUpdates['author'] = $lock->guest_name;
+    }
+
+    \App\Models\MemoryComment::where(function (Builder $q) use ($lock): void {
+        if ($lock->id) {
+          $q->orWhere('device_lock_id', $lock->id);
+        }
+        if ($lock->actor_key) {
+          $q->orWhere('owner_actor_key', $lock->actor_key);
+        }
+        if ($lock->device_id) {
+          $q->orWhere('owner_device_id', $lock->device_id);
         }
       })
-      ->update(['device_lock_id' => $lock->id]);
+      ->update($commentUpdates);
 
-    // Invalidar caché de perfil en Redis
-    $this->scanAndDelete("profile:data:{$lock->event_id}:{$lock->id}:*");
+    // Invalidar caché de perfil, feed y mesas en Redis
+    $this->scanAndDelete(EventKeys::profilePattern($lock->event_id));
+    $this->scanAndDelete(EventKeys::feedPattern($lock->event_id));
+    $this->scanAndDelete(EventKeys::tables($lock->event_id));
 
     $profileData = $this->getProfile->execute(
       targetIdentifier: (string) $lock->id,

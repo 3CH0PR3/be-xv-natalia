@@ -3,8 +3,8 @@
 namespace App\Observers;
 
 use App\Models\DeviceLock;
+use App\Support\Cache\Keys\EventKeys;
 use App\Traits\Cache\InvalidatesCache;
-use Illuminate\Support\Facades\Cache;
 
 class DeviceLockObserver
 {
@@ -22,22 +22,22 @@ class DeviceLockObserver
 
   public function saved(DeviceLock $lock): void
   {
-    Cache::store('redis')->forget("tables:event:{$lock->event_id}");
-    Cache::store('redis')->forget("device:lock:{$lock->device_id}");
-    $this->scanAndDelete("profile:data:{$lock->event_id}:{$lock->id}:*");
+    $this->forgetItem(EventKeys::tables($lock->event_id));
+    $this->forgetItem(EventKeys::deviceLock($lock->device_id));
+    $this->scanAndDelete(EventKeys::profilePattern($lock->event_id, $lock->id));
 
     if ($lock->wasChanged('guest_name') || $lock->wasChanged('avatar_path')) {
-      $this->scanAndDelete("memories:feed:event:{$lock->event_id}:*");
-      $this->scanAndDelete("memory:comments:*");
+      $this->scanAndDelete(EventKeys::feedPattern($lock->event_id));
+      $this->scanAndDelete(EventKeys::commentsPattern());
     }
   }
 
   public function deleted(DeviceLock $lock): void
   {
-    Cache::store('redis')->forget("tables:event:{$lock->event_id}");
-    Cache::store('redis')->forget("device:lock:{$lock->device_id}");
-    $this->scanAndDelete("profile:data:{$lock->event_id}:{$lock->id}:*");
-    $this->scanAndDelete("memories:feed:event:{$lock->event_id}:*");
-    $this->scanAndDelete("memory:comments:*");
+    $this->forgetItem(EventKeys::tables($lock->event_id));
+    $this->forgetItem(EventKeys::deviceLock($lock->device_id));
+    $this->scanAndDelete(EventKeys::profilePattern($lock->event_id, $lock->id));
+    $this->scanAndDelete(EventKeys::feedPattern($lock->event_id));
+    $this->scanAndDelete(EventKeys::commentsPattern());
   }
 }

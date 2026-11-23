@@ -6,12 +6,14 @@ use App\DTOs\AppRelease\SyncAppReleasesData;
 use App\Events\AppReleasePublished;
 use App\Http\Resources\Api\V1\AppReleaseResource;
 use App\Models\AppRelease;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class SyncAppReleasesAction
 {
+  use InvalidatesCache;
   public function execute(SyncAppReleasesData $data, ?string $eventCode = null): Collection
   {
     $hasLatestChange = false;
@@ -41,7 +43,7 @@ class SyncAppReleasesAction
       }
     }
 
-    Cache::store('redis')->forget('app:releases:list');
+    $this->forgetItem(EventKeys::appReleases());
 
     $ordered = AppRelease::latestOrder()->get();
 

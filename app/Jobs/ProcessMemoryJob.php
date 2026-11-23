@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Events\MemoryCreated;
 use App\Http\Resources\Api\V1\MemoryResource;
 use App\Models\Memory;
+use App\Support\Cache\Keys\EventKeys;
 use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -48,8 +49,8 @@ class ProcessMemoryJob implements ShouldQueue
       ProcessMediaOptimizationJob::dispatch($mediaItem->id);
     }
 
-    Cache::store('redis')->forget("memory:{$memory->external_id}");
-    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+    $this->forgetItem(EventKeys::memory($memory->external_id));
+    $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
 
     $payload = (new MemoryResource($memory))->resolve();
     broadcast(new MemoryCreated($eventCode, $payload));

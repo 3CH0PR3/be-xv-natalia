@@ -182,4 +182,75 @@ class ProfileTest extends TestCase
     ])->getJson('/api/v1/profile');
     $unregisteredDeviceRes->assertStatus(404);
   }
+
+  public function test_profile_update_cascades_to_memories_and_comments(): void
+  {
+    // 1. Check in guest with initial name
+    $this->postJson('/api/v1/checkin', [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Andres Original',
+      'deviceId' => 'dev-andres-cascade',
+      'actorKey' => 'actor-andres-cascade',
+    ])->assertStatus(201);
+
+    // 2. Publish a memory
+    $photo = UploadedFile::fake()->image('recuerdo.jpg');
+    $memRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-andres-cascade',
+      'X-Actor-Key' => 'actor-andres-cascade',
+    ])->postJson('/api/v1/memories', [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Andres Original',
+      'ownerDeviceId' => 'dev-andres-cascade',
+      'ownerActorKey' => 'actor-andres-cascade',
+      'caption' => 'Recuerdo antes de editar perfil',
+      'files' => [$photo],
+    ]);
+    $memRes->assertStatus(201);
+    $memoryId = $memRes->json('data.id');
+
+    // 3. Post a comment on the memory
+    $this->withHeaders([
+      'X-Device-Id' => 'dev-andres-cascade',
+      'X-Actor-Key' => 'actor-andres-cascade',
+    ])->postJson("/api/v1/memories/{$memoryId}/comments", [
+      'author' => 'Andres Original',
+      'table' => 'Mesa 01 · Principal',
+      'text' => 'Comentario con nombre original',
+      'ownerDeviceId' => 'dev-andres-cascade',
+      'ownerActorKey' => 'actor-andres-cascade',
+    ])->assertStatus(201);
+
+    // 4. Update profile name and surname
+    $updateRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-andres-cascade',
+      'X-Actor-Key' => 'actor-andres-cascade',
+    ])->postJson('/api/v1/profile', [
+      'guestName' => 'Andres Hernandez',
+      'bio' => 'Perfil actualizado con nuevo apellido',
+    ]);
+    $updateRes->assertStatus(200)
+      ->assertJsonPath('data.guestName', 'Andres Hernandez');
+
+    // 5. Query feed / memories list: author must be Andres Hernandez
+    $feedRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-viewer',
+    ])->getJson('/api/v1/memories');
+    $feedRes->assertStatus(200);
+    $feedItems = $feedRes->json('data');
+    $updatedMem = collect($feedItems)->firstWhere('id', $memoryId);
+    $this->assertNotNull($updatedMem);
+    $this->assertEquals('Andres Hernandez', $updatedMem['guestName']);
+
+    // 6. Query comments list: author must be Andres Hernandez
+    $commentsRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-viewer',
+    ])->getJson("/api/v1/memories/{$memoryId}/comments");
+    $commentsRes->assertStatus(200);
+    $comments = $commentsRes->json('data');
+    $this->assertCount(1, $comments);
+    $this->assertEquals('Andres Hernandez', $comments[0]['author']);
+  }
 }

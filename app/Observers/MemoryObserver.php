@@ -3,8 +3,8 @@
 namespace App\Observers;
 
 use App\Models\Memory;
+use App\Support\Cache\Keys\EventKeys;
 use App\Traits\Cache\InvalidatesCache;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -29,23 +29,23 @@ class MemoryObserver
 
   public function created(Memory $memory): void
   {
-    Cache::store('redis')->forget("memory:{$memory->external_id}");
-    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
-    $this->scanAndDelete("profile:data:{$memory->event_id}:*");
+    $this->forgetItem(EventKeys::memory($memory->external_id));
+    $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
+    $this->scanAndDelete(EventKeys::profilePattern($memory->event_id));
   }
 
   public function updated(Memory $memory): void
   {
-    Cache::store('redis')->forget("memory:{$memory->external_id}");
-    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
-    $this->scanAndDelete("profile:data:{$memory->event_id}:*");
+    $this->forgetItem(EventKeys::memory($memory->external_id));
+    $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
+    $this->scanAndDelete(EventKeys::profilePattern($memory->event_id));
   }
 
   public function deleting(Memory $memory): void
   {
-    Cache::store('redis')->forget("memory:{$memory->external_id}");
-    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
-    $this->scanAndDelete("profile:data:{$memory->event_id}:*");
+    $this->forgetItem(EventKeys::memory($memory->external_id));
+    $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
+    $this->scanAndDelete(EventKeys::profilePattern($memory->event_id));
 
     // Collect file paths before CASCADE delete from database
     $filesByDisk = $memory->mediaItems()

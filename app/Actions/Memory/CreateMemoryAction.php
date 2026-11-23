@@ -10,11 +10,14 @@ use App\Models\Event;
 use App\Models\EventTable;
 use App\Models\Memory;
 use App\Models\MemoryMediaItem;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CreateMemoryAction
 {
+  use InvalidatesCache;
   public function execute(Event $event, CreateMemoryData $data): Memory
   {
     $table = EventTable::forEvent($event->id)->where('code', $data->tableCode)->first();
@@ -111,12 +114,8 @@ class CreateMemoryAction
         }
 
         try {
-          \Illuminate\Support\Facades\Cache::store('redis')->forget("memory:{$freshMemory->external_id}");
-          $redis = \Illuminate\Support\Facades\Cache::store('redis')->getRedis();
-          $keys = $redis->keys("memories:feed:event:{$freshMemory->event_id}:*");
-          if (!empty($keys)) {
-            $redis->del($keys);
-          }
+          $this->forgetItem(EventKeys::memory($freshMemory->external_id));
+          $this->scanAndDelete(EventKeys::feedPattern($freshMemory->event_id));
         } catch (\Throwable) {
           // Fallback silencioso si redis no está configurado o no disponible
         }

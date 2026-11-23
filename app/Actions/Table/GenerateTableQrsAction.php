@@ -14,12 +14,14 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class GenerateTableQrsAction
 {
+  use InvalidatesCache;
   public function execute(
     GenerateTableQrsData|Event $target,
     ?string $baseUrl = null,
@@ -73,7 +75,7 @@ class GenerateTableQrsAction
       ]);
     }
 
-    Cache::store('redis')->forget("tables:event:{$event->id}");
+    $this->forgetItem(EventKeys::tables($event->id));
 
     $refreshed = EventTable::with('deviceLocks')
       ->forEvent($event->id)

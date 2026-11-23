@@ -6,6 +6,7 @@ use App\Events\CommentCreated;
 use App\Http\Resources\Api\V1\MemoryCommentResource;
 use App\Models\Memory;
 use App\Models\MemoryComment;
+use App\Support\Cache\Keys\EventKeys;
 use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -43,9 +44,9 @@ class ProcessCommentJob implements ShouldQueue
     $commentsCount = MemoryComment::where('memory_id', $memory->id)->count();
     $memory->update(['comments_count' => $commentsCount]);
 
-    Cache::store('redis')->forget("memory:{$memory->external_id}");
-    Cache::store('redis')->forget("memory:comments:{$memory->id}");
-    $this->scanAndDelete("memories:feed:event:{$memory->event_id}:*");
+    $this->forgetItem(EventKeys::memory($memory->external_id));
+    $this->forgetItem(EventKeys::memoryComments($memory->id));
+    $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
 
     $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
     $payload = (new MemoryCommentResource($comment))->resolve();

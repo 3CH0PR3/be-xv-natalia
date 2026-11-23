@@ -8,11 +8,13 @@ use App\Models\Memory;
 use App\Models\MemoryComment;
 use App\Models\MemoryCommentLike;
 use App\Services\CommentLikeCounterService;
-use Illuminate\Support\Facades\Cache;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Support\Facades\DB;
 
 class ToggleCommentLikeAction
 {
+  use InvalidatesCache;
   public function __construct(
     private readonly CommentLikeCounterService $counterService,
   ) {}
@@ -30,7 +32,7 @@ class ToggleCommentLikeAction
 
       $likesCount = $this->applyLikeMutation($comment, $existing, $targetLiked, $data);
 
-      Cache::store('redis')->forget("memory:comments:{$memory->id}");
+      $this->forgetItem(EventKeys::memoryComments($memory->id));
 
       DB::afterCommit(static function () use ($comment, $data, $likesCount, $targetLiked): void {
         ProcessCommentLikeJob::dispatch($comment->id, $data->actorKey, $likesCount, $targetLiked, $data->deviceId);
