@@ -26,8 +26,10 @@ class ProfileController extends Controller
     $limit = min(30, max(1, (int) $request->query('limit', $request->query('per_page', 10))));
     $page = max(1, (int) $request->query('page', 1));
     $eventCode = $request->query('event_code') ?: config('xv.default_event_code', 'XV-NATALIA');
+    $viewerDeviceId = $request->deviceId() ?: null;
+    $viewerActorKey = $request->actorKey() ?: null;
 
-    $result = $this->service->listProfiles($search, $limit, $page, $eventCode);
+    $result = $this->service->listProfiles($search, $limit, $page, $eventCode, $viewerDeviceId, $viewerActorKey);
 
     return $this->sendResponse(
       $result,
@@ -57,6 +59,24 @@ class ProfileController extends Controller
     );
   }
 
+  public function myReactions(GetProfileRequest $request): JsonResponse
+  {
+    $page = max(1, (int) $request->query('page', 1));
+    $perPage = min(30, max(1, (int) $request->query('per_page', $request->query('perPage', 7))));
+
+    $result = $this->service->getReactions(
+      $request->toDto(),
+      page: $page,
+      perPage: $perPage
+    );
+
+    return $this->sendResponse(
+      $result,
+      'Reacciones del perfil obtenidas exitosamente.',
+      200
+    );
+  }
+
   public function show(GetProfileRequest $request, string $id): JsonResponse
   {
     $profile = $this->service->getProfile($request->toDto($id));
@@ -64,6 +84,24 @@ class ProfileController extends Controller
     return $this->sendResponse(
       new ProfileResource($profile),
       'Perfil obtenido exitosamente.',
+      200
+    );
+  }
+
+  public function reactions(GetProfileRequest $request, string $id): JsonResponse
+  {
+    $page = max(1, (int) $request->query('page', 1));
+    $perPage = min(30, max(1, (int) $request->query('per_page', $request->query('perPage', 7))));
+
+    $result = $this->service->getReactions(
+      $request->toDto($id),
+      page: $page,
+      perPage: $perPage
+    );
+
+    return $this->sendResponse(
+      $result,
+      'Reacciones del perfil obtenidas exitosamente.',
       200
     );
   }

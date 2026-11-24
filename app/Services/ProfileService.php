@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Actions\Profile\GetProfileAction;
 use App\Actions\Profile\GetProfileMediaAction;
+use App\Actions\Profile\GetProfileReactionsAction;
 use App\Actions\Profile\UpdateProfileAction;
 use App\DTOs\Profile\UpdateProfileData;
 use App\DTOs\Profile\ViewProfileData;
@@ -17,7 +18,8 @@ class ProfileService
   public function __construct(
     private readonly GetProfileAction $getProfile,
     private readonly UpdateProfileAction $updateProfile,
-    private readonly GetProfileMediaAction $getProfileMedia
+    private readonly GetProfileMediaAction $getProfileMedia,
+    private readonly GetProfileReactionsAction $getProfileReactions
   ) {}
 
   public function getAvatar(string $id): BinaryFileResponse
@@ -53,7 +55,36 @@ class ProfileService
     return $this->updateProfile->execute($data);
   }
 
-  public function listProfiles(?string $search = null, int $limit = 10, int $page = 1, ?string $eventCode = null): array
+  public function getReactions(
+    ViewProfileData|string|null $targetOrDto = null,
+    ?string $viewerDeviceId = null,
+    ?string $viewerActorKey = null,
+    ?string $eventCode = null,
+    int $page = 1,
+    int $perPage = 7
+  ): array {
+    if ($targetOrDto instanceof ViewProfileData) {
+      return $this->getProfileReactions->execute(
+        $targetOrDto->targetIdentifier,
+        $targetOrDto->viewerDeviceId,
+        $targetOrDto->viewerActorKey,
+        $targetOrDto->eventCode,
+        $page,
+        $perPage
+      );
+    }
+
+    return $this->getProfileReactions->execute($targetOrDto, $viewerDeviceId, $viewerActorKey, $eventCode, $page, $perPage);
+  }
+
+  public function listProfiles(
+    ?string $search = null,
+    int $limit = 10,
+    int $page = 1,
+    ?string $eventCode = null,
+    ?string $viewerDeviceId = null,
+    ?string $viewerActorKey = null
+  ): array
   {
     $eventCode = $eventCode ?: config('xv.default_event_code', 'XV-NATALIA');
     $event = Event::where('code', $eventCode)->first();
@@ -88,9 +119,25 @@ class ProfileService
       });
     }
 
-    $query->orderByRaw('CASE WHEN avatar_path IS NOT NULL AND avatar_path != \'\' THEN 0 ELSE 1 END')
-      ->orderByDesc('locked_at')
-      ->orderByDesc('id');
+    $isTableContext = $search !== null && (
+      stripos($search, 'mesa') !== false ||
+      stripos($search, 'table') !== false ||
+      stripos($search, 'principal') !== false
+    );
+
+    if (($viewerActorKey !== null && $viewerActorKey !== '') || ($viewerDeviceId !== null && $viewerDeviceId !== '')) {
+      $escapedActor = addslashes((string) $viewerActorKey);
+      $escapedDev = addslashes((string) $viewerDeviceId);
+      $query->orderByRaw("CASE WHEN (actor_key = '{$escapedActor}' OR device_id = '{$escapedDev}') THEN 0 ELSE 1 END");
+    }
+
+    if ($isTableContext) {
+      $query->orderBy('locked_at', 'asc')->orderBy('id', 'asc');
+    } else {
+      $query->orderByRaw('CASE WHEN avatar_path IS NOT NULL AND avatar_path != \'\' THEN 0 ELSE 1 END')
+        ->orderByDesc('locked_at')
+        ->orderByDesc('id');
+    }
 
     $paginator = $query->paginate($limit, ['*'], 'page', $page);
 
