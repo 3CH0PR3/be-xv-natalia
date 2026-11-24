@@ -11,6 +11,7 @@ use App\Models\Memory;
 use App\Models\MemoryComment;
 use App\Services\CommentLikeCounterService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CreateCommentAction
 {
@@ -51,9 +52,15 @@ class CreateCommentAction
 
       $fresh = $comment->fresh(['deviceLock:id,guest_name,avatar_path,cover_path,actor_key,device_id,updated_at', 'commentLikes']);
       $nextCount = (int) $memory->fresh()->comments_count;
+      $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
+      $payload = (new MemoryCommentResource($fresh))->resolve();
 
-      DB::afterCommit(static function () use ($comment): void {
-        // Dispatch async job for notifications, caching & broadcasting
+      DB::afterCommit(static function () use ($comment, $eventCode, $memory, $payload, $nextCount): void {
+        try {
+          broadcast(new CommentCreated($eventCode, $memory->external_id, $payload, $nextCount));
+        } catch (\Throwable $e) {
+          Log::warning('Direct broadcast of CommentCreated failed: ' . $e->getMessage());
+        }
         ProcessCommentJob::dispatch($comment->id);
       });
 

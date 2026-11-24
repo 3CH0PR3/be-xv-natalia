@@ -3,11 +3,13 @@
 namespace App\Actions\Memory;
 
 use App\DTOs\Memory\ToggleReactionData;
+use App\Events\MemoryReactionUpdated;
 use App\Jobs\ProcessLikeJob;
 use App\Models\Memory;
 use App\Models\MemoryReaction;
 use App\Services\MemoryReactionCounterService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ToggleMemoryReactionAction
 {
@@ -48,7 +50,22 @@ class ToggleMemoryReactionAction
       $fires = $counts['fires'];
       $cheers = $counts['cheers'];
 
-      DB::afterCommit(static function () use ($memory, $likes, $fires, $cheers, $data, $effectiveChoice): void {
+      $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
+      DB::afterCommit(static function () use ($memory, $likes, $fires, $cheers, $data, $effectiveChoice, $eventCode): void {
+        try {
+          broadcast(new MemoryReactionUpdated(
+            $eventCode,
+            $memory->external_id,
+            $likes,
+            $fires,
+            $cheers,
+            $data->actorKey,
+            $effectiveChoice,
+            $data->deviceId
+          ));
+        } catch (\Throwable $e) {
+          Log::warning('Direct broadcast of MemoryReactionUpdated failed: ' . $e->getMessage());
+        }
         ProcessLikeJob::dispatch($memory->id, $data->actorKey, $effectiveChoice, $likes, $fires, $cheers, $data->deviceId);
       });
 
