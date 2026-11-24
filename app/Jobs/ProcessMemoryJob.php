@@ -51,6 +51,7 @@ class ProcessMemoryJob implements ShouldQueue
 
     $this->forgetItem(EventKeys::memory($memory->external_id));
     $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
+    $this->scanAndDelete(EventKeys::profilePattern($memory->event_id));
 
     $payload = (new MemoryResource($memory))->resolve();
     broadcast(new MemoryCreated($eventCode, $payload));

@@ -104,7 +104,7 @@ class CreateMemoryAction
         'comments.commentLikes'
       ]);
 
-      DB::afterCommit(static function () use ($freshMemory): void {
+      DB::afterCommit(function () use ($freshMemory): void {
         try {
           $eventCode = $freshMemory->event?->code ?? (string) config('xv.default_event_code', 'XV-NATALIA');
           $payload = (new \App\Http\Resources\Api\V1\MemoryResource($freshMemory))->resolve();
@@ -116,11 +116,10 @@ class CreateMemoryAction
         try {
           $this->forgetItem(EventKeys::memory($freshMemory->external_id));
           $this->scanAndDelete(EventKeys::feedPattern($freshMemory->event_id));
+          $this->scanAndDelete(EventKeys::profilePattern($freshMemory->event_id));
         } catch (\Throwable) {
-          // Fallback silencioso si redis no está configurado o no disponible
         }
 
-        // Dispatch async job for notifications & media optimization
         ProcessMemoryJob::dispatch($freshMemory->id);
       });
 

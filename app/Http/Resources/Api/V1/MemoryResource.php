@@ -6,7 +6,6 @@ use App\Services\MemoryReactionCounterService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Memory */
 class MemoryResource extends JsonResource
 {
   public function toArray(Request $request): array
@@ -47,6 +46,15 @@ class MemoryResource extends JsonResource
       'commentsCount' => $this->comments_count,
       'comments' => $this->relationLoaded('comments')
         ? MemoryCommentResource::collection($this->comments)->resolve($request)
+        : [],
+      'reactions' => $this->relationLoaded('reactions')
+        ? $this->reactions->map(fn ($r) => [
+            'id' => $r->id,
+            'choice' => $r->choice,
+            'actorKey' => $r->actor_key,
+            'deviceId' => $r->device_id,
+            'createdAt' => optional($r->created_at)->toIso8601String(),
+          ])->values()->all()
         : [],
       'timestampMs' => $this->timestamp_ms,
       'createdAt' => optional($this->created_at)->toIso8601String(),

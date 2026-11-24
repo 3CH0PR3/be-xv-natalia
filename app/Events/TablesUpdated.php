@@ -38,7 +38,6 @@ class TablesUpdated implements ShouldBroadcastNow
         'zone' => $t['zone'] ?? '',
         'centerpiece' => $t['centerpiece'] ?? '',
         'capacity' => $t['capacity'] ?? 10,
-        'guests' => $t['guests'] ?? [],
         'guestsConnected' => $t['guestsConnected'] ?? (isset($t['guests']) ? count($t['guests']) : 0),
         'qrImageUrl' => $t['qrImageUrl'] ?? ($t['qr_image_url'] ?? null),
         'qrSvgUrl' => $t['qrSvgUrl'] ?? ($t['qr_svg_url'] ?? null),
