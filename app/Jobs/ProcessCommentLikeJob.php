@@ -26,7 +26,8 @@ class ProcessCommentLikeJob implements ShouldQueue
     public string $actorKey,
     public ?int $likesCount = null,
     public ?bool $liked = null,
-    public ?string $deviceId = null
+    public ?string $deviceId = null,
+    public bool $shouldBroadcast = true
   ) {
     $this->queue = 'default';
   }
@@ -53,17 +54,19 @@ class ProcessCommentLikeJob implements ShouldQueue
 
     $this->forgetItem(EventKeys::memoryComments($memory->id));
 
-    $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
+    if ($this->shouldBroadcast) {
+      $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
 
-    broadcast(new CommentLikeUpdated(
-      $eventCode,
-      $memory->external_id,
-      $comment->external_id,
-      $likesCount,
-      $this->actorKey,
-      $liked,
-      $this->deviceId
-    ));
+      broadcast(new CommentLikeUpdated(
+        $eventCode,
+        $memory->external_id,
+        $comment->external_id,
+        $likesCount,
+        $this->actorKey,
+        $liked,
+        $this->deviceId
+      ));
+    }
   }
 
   public function failed(\Throwable $exception): void

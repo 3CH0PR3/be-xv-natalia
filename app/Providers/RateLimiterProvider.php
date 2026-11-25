@@ -39,6 +39,11 @@ class RateLimiterProvider extends ServiceProvider
       return Limit::perMinute(30)->by($key);
     });
 
+    RateLimiter::for('api.memories.chunks', static function (Request $request) {
+      $key = $request->deviceId() ?: $request->ip();
+      return Limit::perMinute(3600)->by($key);
+    });
+
     RateLimiter::for('api.memories.interactions', static function (Request $request) {
       $key = $request->deviceId() ?: $request->ip();
       return Limit::perMinute(180)->by($key);

@@ -4,10 +4,6 @@ namespace App\DTOs\Memory;
 
 final readonly class CreateMemoryData
 {
-  /**
-   * @param  array<int, \Illuminate\Http\UploadedFile>  $files
-   * @param  array<int, \Illuminate\Http\UploadedFile|null>  $posters
-   */
   public function __construct(
     public string $eventCode,
     public string $guestName,
@@ -16,10 +12,12 @@ final readonly class CreateMemoryData
     public ?string $ownerActorKey,
     public string $momentTag,
     public string $caption,
-    public array $files,
+    public array $files = [],
     public array $posters = [],
     public ?string $externalId = null,
     public ?int $deviceLockId = null,
+    public array $uploadedKeys = [],
+    public array $fileOrder = [],
   ) {}
 
   public static function fromArray(array $data): self
@@ -36,6 +34,8 @@ final readonly class CreateMemoryData
       posters: $data['posters'] ?? [],
       externalId: $data['externalId'] ?? ($data['id'] ?? null),
       deviceLockId: isset($data['deviceLockId']) ? (int) $data['deviceLockId'] : null,
+      uploadedKeys: $data['uploadedKeys'] ?? [],
+      fileOrder: $data['fileOrder'] ?? [],
     );
   }
 
@@ -53,6 +53,8 @@ final readonly class CreateMemoryData
       'caption' => $this->caption,
       'files' => $this->files,
       'posters' => $this->posters,
+      'uploadedKeys' => $this->uploadedKeys,
+      'fileOrder' => $this->fileOrder,
     ];
   }
 }

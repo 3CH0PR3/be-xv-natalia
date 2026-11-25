@@ -292,34 +292,54 @@ class ProfileTest extends TestCase
       'X-Device-Id' => 'dev-roberto-reactions',
       'X-Actor-Key' => 'actor-roberto-reactions',
     ])->postJson("/api/v1/memories/{$memoryId}/reactions/toggle", [
-      'choice' => 'likes',
+      'choice' => 'fires',
+      'actorKey' => 'actor-roberto-reactions',
+      'deviceId' => 'dev-roberto-reactions',
+    ])->assertStatus(200);
+
+    $commentRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-roberto-reactions',
+      'X-Actor-Key' => 'actor-roberto-reactions',
+    ])->postJson("/api/v1/memories/{$memoryId}/comments", [
+      'author' => 'Roberto Carlos',
+      'table' => 'Mesa 01 · Principal',
+      'text' => 'Excelente momento en la gala',
+      'ownerDeviceId' => 'dev-roberto-reactions',
+      'ownerActorKey' => 'actor-roberto-reactions',
+    ])->assertStatus(201);
+
+    $commentId = $commentRes->json('data.id');
+
+    $this->withHeaders([
+      'X-Device-Id' => 'dev-roberto-reactions',
+      'X-Actor-Key' => 'actor-roberto-reactions',
+    ])->postJson("/api/v1/memories/{$memoryId}/comments/{$commentId}/like", [
       'actorKey' => 'actor-roberto-reactions',
       'deviceId' => 'dev-roberto-reactions',
     ])->assertStatus(200);
 
     $myReactionsRes = $this->withHeaders([
-      'X-Device-Id' => 'dev-mariana-reactions',
-      'X-Actor-Key' => 'actor-mariana-reactions',
+      'X-Device-Id' => 'dev-roberto-reactions',
+      'X-Actor-Key' => 'actor-roberto-reactions',
     ])->getJson('/api/v1/profile/reactions?page=1&per_page=7');
 
     $myReactionsRes->assertStatus(200)
-      ->assertJsonPath('data.data.0.choice', 'likes')
-      ->assertJsonPath('data.data.0.author', 'Roberto Carlos')
       ->assertJsonPath('data.pagination.currentPage', 1)
       ->assertJsonPath('data.pagination.perPage', 7)
-      ->assertJsonPath('data.pagination.total', 1)
+      ->assertJsonPath('data.pagination.total', 3)
       ->assertJsonPath('data.pagination.hasMore', false);
 
+    $items = collect($myReactionsRes->json('data.data'));
+    $this->assertTrue($items->contains(fn ($r) => $r['targetType'] === 'post' && $r['choice'] === 'fires' && $r['memory']['id'] === $memoryId));
+    $this->assertTrue($items->contains(fn ($r) => $r['targetType'] === 'comment' && $r['commentId'] === $commentId && $r['memory']['id'] === $memoryId));
+    $this->assertTrue($items->contains(fn ($r) => $r['targetType'] === 'comment_like' && $r['commentId'] === $commentId && $r['memory']['id'] === $memoryId));
+
     $publicReactionsRes = $this->withHeaders([
-      'X-Device-Id' => 'dev-roberto-reactions',
-      'X-Actor-Key' => 'actor-roberto-reactions',
-    ])->getJson('/api/v1/profile/dev-mariana-reactions/reactions?page=1&per_page=7');
+      'X-Device-Id' => 'dev-mariana-reactions',
+      'X-Actor-Key' => 'actor-mariana-reactions',
+    ])->getJson('/api/v1/profile/dev-roberto-reactions/reactions?page=1&per_page=7');
 
     $publicReactionsRes->assertStatus(200)
-      ->assertJsonPath('data.data.0.choice', 'likes')
-      ->assertJsonPath('data.data.0.author', 'Roberto Carlos')
-      ->assertJsonPath('data.pagination.currentPage', 1)
-      ->assertJsonPath('data.pagination.perPage', 7)
-      ->assertJsonPath('data.pagination.total', 1);
+      ->assertJsonPath('data.pagination.total', 3);
   }
 }

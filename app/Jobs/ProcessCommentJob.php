@@ -24,7 +24,8 @@ class ProcessCommentJob implements ShouldQueue
   public int $timeout = 30;
 
   public function __construct(
-    public int $commentId
+    public int $commentId,
+    public bool $shouldBroadcast = true
   ) {
     $this->queue = 'default';
   }
@@ -48,10 +49,12 @@ class ProcessCommentJob implements ShouldQueue
     $this->forgetItem(EventKeys::memoryComments($memory->id));
     $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
 
-    $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
-    $payload = (new MemoryCommentResource($comment))->resolve();
+    if ($this->shouldBroadcast) {
+      $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
+      $payload = (new MemoryCommentResource($comment))->resolve();
 
-    broadcast(new CommentCreated($eventCode, $memory->external_id, $payload, $commentsCount));
+      broadcast(new CommentCreated($eventCode, $memory->external_id, $payload, $commentsCount));
+    }
   }
 
   public function failed(\Throwable $exception): void

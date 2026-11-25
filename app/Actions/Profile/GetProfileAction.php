@@ -147,7 +147,6 @@ class GetProfileAction
 
     $totalPhotos = 0;
     $totalVideos = 0;
-    $totalReactions = 0;
 
     foreach ($memories as $mem) {
       if ($mem->media_type === 'video') {
@@ -155,8 +154,9 @@ class GetProfileAction
       } else {
         $totalPhotos++;
       }
-      $totalReactions += $mem->reactions->count();
     }
+
+    $totalReactions = GetProfileReactionsAction::countActivityForLock($lock->event_id, $lock);
 
     $request = app()->bound('request') ? app('request') : new Request();
     $page = max(1, (int) $request->query('page', 1));

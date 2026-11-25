@@ -23,7 +23,8 @@ class ProcessMemoryJob implements ShouldQueue
   public int $timeout = 60;
 
   public function __construct(
-    public int $memoryId
+    public int $memoryId,
+    public bool $shouldBroadcast = true
   ) {
     $this->queue = 'default';
   }
@@ -53,8 +54,10 @@ class ProcessMemoryJob implements ShouldQueue
     $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
     $this->scanAndDelete(EventKeys::profilePattern($memory->event_id));
 
-    $payload = (new MemoryResource($memory))->resolve();
-    broadcast(new MemoryCreated($eventCode, $payload));
+    if ($this->shouldBroadcast) {
+      $payload = (new MemoryResource($memory))->resolve();
+      broadcast(new MemoryCreated($eventCode, $payload));
+    }
   }
 
   public function failed(\Throwable $exception): void

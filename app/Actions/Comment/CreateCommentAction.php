@@ -57,11 +57,11 @@ class CreateCommentAction
 
       DB::afterCommit(static function () use ($comment, $eventCode, $memory, $payload, $nextCount): void {
         try {
-          broadcast(new CommentCreated($eventCode, $memory->external_id, $payload, $nextCount));
+          broadcast(new CommentCreated($eventCode, $memory->external_id, $payload, $nextCount))->toOthers();
         } catch (\Throwable $e) {
           Log::warning('Direct broadcast of CommentCreated failed: ' . $e->getMessage());
         }
-        ProcessCommentJob::dispatch($comment->id);
+        ProcessCommentJob::dispatch($comment->id, false);
       });
 
       return $fresh;

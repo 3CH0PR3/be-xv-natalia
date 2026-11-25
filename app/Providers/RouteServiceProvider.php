@@ -57,6 +57,7 @@ class RouteServiceProvider extends ServiceProvider
   {
     $this->apiGroup(['api'], static function (): void {
       require base_path('routes/apis/memories/api-memories.php');
+      require base_path('routes/apis/memories/api-upload-operations.php');
     });
   }
 

@@ -3,6 +3,7 @@
 namespace App\Actions\Comment;
 
 use App\DTOs\Comment\ToggleCommentLikeData;
+use App\Events\CommentLikeUpdated;
 use App\Jobs\ProcessCommentLikeJob;
 use App\Models\Memory;
 use App\Models\MemoryComment;
@@ -11,6 +12,7 @@ use App\Services\CommentLikeCounterService;
 use App\Support\Cache\Keys\EventKeys;
 use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ToggleCommentLikeAction
 {
@@ -34,8 +36,23 @@ class ToggleCommentLikeAction
 
       $this->forgetItem(EventKeys::memoryComments($memory->id));
 
-      DB::afterCommit(static function () use ($comment, $data, $likesCount, $targetLiked): void {
-        ProcessCommentLikeJob::dispatch($comment->id, $data->actorKey, $likesCount, $targetLiked, $data->deviceId);
+      $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
+
+      DB::afterCommit(static function () use ($comment, $data, $likesCount, $targetLiked, $eventCode, $memory): void {
+        try {
+          broadcast(new CommentLikeUpdated(
+            $eventCode,
+            $memory->external_id,
+            $comment->external_id,
+            $likesCount,
+            $data->actorKey,
+            $targetLiked,
+            $data->deviceId
+          ))->toOthers();
+        } catch (\Throwable $e) {
+          Log::warning('Direct broadcast of CommentLikeUpdated failed: ' . $e->getMessage());
+        }
+        ProcessCommentLikeJob::dispatch($comment->id, $data->actorKey, $likesCount, $targetLiked, $data->deviceId, false);
       });
 
       return [

@@ -62,11 +62,11 @@ class ToggleMemoryReactionAction
             $data->actorKey,
             $effectiveChoice,
             $data->deviceId
-          ));
+          ))->toOthers();
         } catch (\Throwable $e) {
           Log::warning('Direct broadcast of MemoryReactionUpdated failed: ' . $e->getMessage());
         }
-        ProcessLikeJob::dispatch($memory->id, $data->actorKey, $effectiveChoice, $likes, $fires, $cheers, $data->deviceId);
+        ProcessLikeJob::dispatch($memory->id, $data->actorKey, $effectiveChoice, $likes, $fires, $cheers, $data->deviceId, false);
       });
 
       return [

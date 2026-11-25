@@ -29,7 +29,8 @@ class ProcessLikeJob implements ShouldQueue
     public ?int $likes = null,
     public ?int $fires = null,
     public ?int $cheers = null,
-    public ?string $deviceId = null
+    public ?string $deviceId = null,
+    public bool $shouldBroadcast = true
   ) {
     $this->queue = 'default';
   }
@@ -60,18 +61,20 @@ class ProcessLikeJob implements ShouldQueue
     $this->forgetItem(EventKeys::memory($memory->external_id));
     $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
 
-    $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
+    if ($this->shouldBroadcast) {
+      $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
 
-    broadcast(new MemoryReactionUpdated(
-      $eventCode,
-      $memory->external_id,
-      $likes,
-      $fires,
-      $cheers,
-      $this->actorKey,
-      $this->choice,
-      $this->deviceId
-    ));
+      broadcast(new MemoryReactionUpdated(
+        $eventCode,
+        $memory->external_id,
+        $likes,
+        $fires,
+        $cheers,
+        $this->actorKey,
+        $this->choice,
+        $this->deviceId
+      ));
+    }
   }
 
   public function failed(\Throwable $exception): void

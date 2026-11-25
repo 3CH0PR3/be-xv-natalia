@@ -20,6 +20,7 @@ require_once __DIR__ . '/apis/tables/api-tables.php';
 |-------------------------------------------------------------
 */
 require_once __DIR__ . '/apis/memories/api-memories.php';
+require_once __DIR__ . '/apis/memories/api-upload-operations.php';
 
 /*
 |-------------------------------------------------------------
