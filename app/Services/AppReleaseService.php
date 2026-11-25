@@ -7,11 +7,11 @@ use App\Actions\AppRelease\SyncAppReleasesAction;
 use App\DTOs\AppRelease\SyncAppReleasesData;
 use Illuminate\Support\Collection;
 
-class AppReleaseService
+final readonly class AppReleaseService
 {
   public function __construct(
-    private readonly ListAppReleasesAction $listReleases,
-    private readonly SyncAppReleasesAction $syncReleases,
+    private ListAppReleasesAction $listReleases,
+    private SyncAppReleasesAction $syncReleases,
   ) {}
 
   public function listReleases(): Collection

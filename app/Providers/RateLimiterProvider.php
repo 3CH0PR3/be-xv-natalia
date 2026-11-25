@@ -19,40 +19,35 @@ class RateLimiterProvider extends ServiceProvider
 
   private function registerApiLimiters(): void
   {
-    RateLimiter::for('api', static function (Request $request) {
-      $key = $request->deviceId() ?: $request->ip();
-      return Limit::perMinute(120)->by($key);
+    $resolveActorKey = static fn (Request $request): string => (string) ($request->deviceId() ?: ($request->actorKey() ?: $request->ip()));
+
+    RateLimiter::for('api', static function (Request $request) use ($resolveActorKey) {
+      return Limit::perMinute(180)->by($resolveActorKey($request));
     });
 
-    RateLimiter::for('api.celebrate', static function (Request $request) {
-      $key = $request->deviceId() ?: $request->ip();
-      return Limit::perMinute(120)->by($key);
+    RateLimiter::for('api.celebrate', static function (Request $request) use ($resolveActorKey) {
+      return Limit::perMinute(120)->by($resolveActorKey($request));
     });
 
-    RateLimiter::for('api.checkin', static function (Request $request) {
-      $key = $request->deviceId() ?: $request->ip();
-      return Limit::perMinute(60)->by($key);
+    RateLimiter::for('api.checkin', static function (Request $request) use ($resolveActorKey) {
+      return Limit::perMinute(60)->by($resolveActorKey($request));
     });
 
-    RateLimiter::for('api.memories.store', static function (Request $request) {
-      $key = $request->deviceId() ?: $request->ip();
-      return Limit::perMinute(30)->by($key);
+    RateLimiter::for('api.memories.store', static function (Request $request) use ($resolveActorKey) {
+      return Limit::perMinute(45)->by($resolveActorKey($request));
     });
 
-    RateLimiter::for('api.memories.chunks', static function (Request $request) {
-      $key = $request->deviceId() ?: $request->ip();
-      return Limit::perMinute(3600)->by($key);
+    RateLimiter::for('api.memories.chunks', static function (Request $request) use ($resolveActorKey) {
+      return Limit::perMinute(6000)->by($resolveActorKey($request));
     });
 
-    RateLimiter::for('api.memories.interactions', static function (Request $request) {
-      $key = $request->deviceId() ?: $request->ip();
-      return Limit::perMinute(180)->by($key);
+    RateLimiter::for('api.memories.interactions', static function (Request $request) use ($resolveActorKey) {
+      return Limit::perMinute(180)->by($resolveActorKey($request));
     });
 
-    RateLimiter::for('api.memories.reactions', static function (Request $request) {
-      $key = (string) ($request->deviceId() ?: ($request->actorKey() ?: $request->ip()));
+    RateLimiter::for('api.memories.reactions', static function (Request $request) use ($resolveActorKey) {
       return Limit::perMinute(60)
-        ->by($key)
+        ->by($resolveActorKey($request))
         ->response(static fn () => response()->json([
           'success' => false,
           'code' => 429,
@@ -61,10 +56,9 @@ class RateLimiterProvider extends ServiceProvider
         ], 429));
     });
 
-    RateLimiter::for('api.comments', static function (Request $request) {
-      $key = (string) ($request->deviceId() ?: ($request->actorKey() ?: $request->ip()));
+    RateLimiter::for('api.comments', static function (Request $request) use ($resolveActorKey) {
       return Limit::perMinute(30)
-        ->by($key)
+        ->by($resolveActorKey($request))
         ->response(static fn () => response()->json([
           'success' => false,
           'code' => 429,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\DTOs\ChunkUpload\InitChunkUploadData;
 use Illuminate\Foundation\Http\FormRequest;
 
 class InitChunkUploadRequest extends FormRequest
@@ -19,5 +20,14 @@ class InitChunkUploadRequest extends FormRequest
       'totalSize' => ['required', 'integer', 'min:1'],
       'totalChunks' => ['required', 'integer', 'min:1', 'max:100000'],
     ];
+  }
+
+  public function toDto(): InitChunkUploadData
+  {
+    return InitChunkUploadData::fromArray([
+      ...$this->validated(),
+      'actorKey' => $this->actorKey() ?: null,
+      'deviceId' => $this->deviceId() ?: null,
+    ]);
   }
 }

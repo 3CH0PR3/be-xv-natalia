@@ -111,6 +111,9 @@ class GetProfileAction
       $isOwn = true;
     }
     $formatted['isOwnProfile'] = $isOwn;
+    if (!$isOwn && isset($formatted['stats']) && is_array($formatted['stats'])) {
+      $formatted['stats']['totalReactions'] = 0;
+    }
 
     return $formatted;
   }

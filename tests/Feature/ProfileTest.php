@@ -339,7 +339,24 @@ class ProfileTest extends TestCase
       'X-Actor-Key' => 'actor-mariana-reactions',
     ])->getJson('/api/v1/profile/dev-roberto-reactions/reactions?page=1&per_page=7');
 
-    $publicReactionsRes->assertStatus(200)
-      ->assertJsonPath('data.pagination.total', 3);
+    $publicReactionsRes->assertStatus(403);
+
+    $publicProfileRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-mariana-reactions',
+      'X-Actor-Key' => 'actor-mariana-reactions',
+    ])->getJson('/api/v1/profile/dev-roberto-reactions');
+
+    $publicProfileRes->assertStatus(200)
+      ->assertJsonPath('data.isOwnProfile', false)
+      ->assertJsonPath('data.stats.totalReactions', 0);
+
+    $ownProfileByIdRes = $this->withHeaders([
+      'X-Device-Id' => 'dev-roberto-reactions',
+      'X-Actor-Key' => 'actor-roberto-reactions',
+    ])->getJson('/api/v1/profile/dev-roberto-reactions');
+
+    $ownProfileByIdRes->assertStatus(200)
+      ->assertJsonPath('data.isOwnProfile', true)
+      ->assertJsonPath('data.stats.totalReactions', 3);
   }
 }

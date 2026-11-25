@@ -11,6 +11,7 @@ use App\Models\MemoryCommentLike;
 use App\Models\MemoryReaction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class GetProfileReactionsAction
@@ -27,6 +28,12 @@ class GetProfileReactionsAction
     $event = Event::where('code', $eventCode)->firstOrFail();
 
     $lock = $this->resolveTargetLock($event, $targetIdentifier, $viewerDeviceId, $viewerActorKey);
+
+    if ($targetIdentifier !== null && trim($targetIdentifier) !== '') {
+      if (!$this->isViewerOwner($lock, $viewerDeviceId, $viewerActorKey)) {
+        throw new AccessDeniedHttpException('La actividad de reacciones es privada y solo puede verla el dueño del perfil.');
+      }
+    }
 
     $actorKey = $lock?->actor_key ?: ($targetIdentifier !== null ? trim($targetIdentifier) : null);
     $deviceId = $lock?->device_id ?: ($targetIdentifier !== null ? trim($targetIdentifier) : null);
@@ -336,6 +343,20 @@ class GetProfileReactionsAction
     }
 
     return $query->first();
+  }
+
+  private function isViewerOwner(?DeviceLock $lock, ?string $viewerDeviceId, ?string $viewerActorKey): bool
+  {
+    if (!$lock) {
+      return false;
+    }
+    if ($viewerActorKey && $lock->actor_key && $lock->actor_key === $viewerActorKey) {
+      return true;
+    }
+    if ($viewerDeviceId && $lock->device_id && $lock->device_id === $viewerDeviceId) {
+      return true;
+    }
+    return false;
   }
 
   private function emptyPaginatedResult(int $page, int $perPage): array

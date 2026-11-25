@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\DTOs\UploadOperation\CreateUploadOperationData;
 use Illuminate\Foundation\Http\FormRequest;
 
 class InitUploadOperationRequest extends FormRequest
@@ -30,5 +31,19 @@ class InitUploadOperationRequest extends FormRequest
       'files.*.totalChunks' => ['required', 'integer', 'min:1', 'max:100000'],
       'files.*.sortOrder' => ['nullable', 'integer', 'min:0', 'max:500'],
     ];
+  }
+
+  public function toDto(): CreateUploadOperationData
+  {
+    $origin = $this->getSchemeAndHttpHost();
+
+    return CreateUploadOperationData::fromArray([
+      'eventCode' => $this->eventCode(),
+      'deviceLock' => $this->attributes->get('activeDeviceLock'),
+      'deviceId' => $this->deviceId() ?: null,
+      'actorKey' => $this->actorKey() ?: null,
+      'payload' => $this->validated(),
+      'requestOrigin' => $origin !== '' ? $origin : null,
+    ]);
   }
 }

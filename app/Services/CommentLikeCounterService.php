@@ -2,29 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\MemoryComment;
-use Illuminate\Support\Facades\Redis;
-use Throwable;
+use App\Actions\Comment\ManageCommentLikeCountersAction;
 
-class CommentLikeCounterService
+final readonly class CommentLikeCounterService
 {
-  private const KEY_PREFIX = 'comment:likes:';
-  private const DIRTY_SET = 'comments:dirty_likes';
-  private const TTL_SECONDS = 86400;
+  public function __construct(
+    private ManageCommentLikeCountersAction $counters,
+  ) {}
 
   public function get(int $commentId, int $fallback = 0): int
   {
-    try {
-      $val = Redis::get(self::KEY_PREFIX . $commentId);
-      if ($val !== null && $val !== false) {
-        return max(0, (int) $val);
-      }
-
-      $this->set($commentId, $fallback);
-      return max(0, $fallback);
-    } catch (Throwable) {
-      return max(0, $fallback);
-    }
+    return $this->counters->get($commentId, $fallback);
   }
 
   /**
@@ -34,125 +22,31 @@ class CommentLikeCounterService
    */
   public function getMultiple(array $commentIds, array $fallbacks = []): array
   {
-    if (empty($commentIds)) {
-      return [];
-    }
-
-    try {
-      $keys = array_map(static fn (int $id): string => self::KEY_PREFIX . $id, $commentIds);
-      $values = Redis::mGet($keys);
-      $result = [];
-
-      foreach ($commentIds as $idx => $id) {
-        $val = $values[$idx] ?? null;
-        if ($val !== null && $val !== false) {
-          $result[$id] = max(0, (int) $val);
-          continue;
-        }
-
-        $fallback = $fallbacks[$id] ?? 0;
-        $result[$id] = max(0, $fallback);
-        $this->set($id, $fallback);
-      }
-
-      return $result;
-    } catch (Throwable) {
-      $result = [];
-      foreach ($commentIds as $id) {
-        $result[$id] = max(0, $fallbacks[$id] ?? 0);
-      }
-      return $result;
-    }
+    return $this->counters->getMultiple($commentIds, $fallbacks);
   }
 
   public function set(int $commentId, int $count): void
   {
-    try {
-      $safeCount = max(0, $count);
-      Redis::setex(self::KEY_PREFIX . $commentId, self::TTL_SECONDS, $safeCount);
-    } catch (Throwable) {
-      // Ignorar fallback
-    }
+    $this->counters->set($commentId, $count);
   }
 
   public function increment(int $commentId, int $initialFallback = 0): int
   {
-    try {
-      $key = self::KEY_PREFIX . $commentId;
-      $exists = Redis::exists($key);
-      if (!$exists) {
-        $this->set($commentId, $initialFallback);
-      }
-
-      $next = (int) Redis::incr($key);
-      Redis::expire($key, self::TTL_SECONDS);
-      Redis::sAdd(self::DIRTY_SET, $commentId);
-
-      return max(0, $next);
-    } catch (Throwable) {
-      return max(0, $initialFallback + 1);
-    }
+    return $this->counters->increment($commentId, $initialFallback);
   }
 
   public function decrement(int $commentId, int $initialFallback = 0): int
   {
-    try {
-      $key = self::KEY_PREFIX . $commentId;
-      $exists = Redis::exists($key);
-      if (!$exists) {
-        $this->set($commentId, $initialFallback);
-      }
-
-      $next = (int) Redis::decr($key);
-      if ($next < 0) {
-        $this->set($commentId, 0);
-        $next = 0;
-      }
-
-      Redis::expire($key, self::TTL_SECONDS);
-      Redis::sAdd(self::DIRTY_SET, $commentId);
-
-      return max(0, $next);
-    } catch (Throwable) {
-      return max(0, $initialFallback - 1);
-    }
+    return $this->counters->decrement($commentId, $initialFallback);
   }
 
   public function syncDirtyCounters(int $limit = 200): int
   {
-    try {
-      $dirtyIds = Redis::sMembers(self::DIRTY_SET);
-      if (empty($dirtyIds)) {
-        return 0;
-      }
-
-      $batch = array_slice($dirtyIds, 0, $limit);
-      $syncedCount = 0;
-
-      foreach ($batch as $id) {
-        $commentId = (int) $id;
-        $countVal = Redis::get(self::KEY_PREFIX . $commentId);
-        if ($countVal !== null && $countVal !== false) {
-          $count = max(0, (int) $countVal);
-          MemoryComment::where('id', $commentId)->update(['likes_count' => $count]);
-          $syncedCount++;
-        }
-        Redis::sRem(self::DIRTY_SET, $id);
-      }
-
-      return $syncedCount;
-    } catch (Throwable) {
-      return 0;
-    }
+    return $this->counters->syncDirtyCounters($limit);
   }
 
   public function clear(int $commentId): void
   {
-    try {
-      Redis::del(self::KEY_PREFIX . $commentId);
-      Redis::sRem(self::DIRTY_SET, $commentId);
-    } catch (Throwable) {
-      // Ignorar
-    }
+    $this->counters->clear($commentId);
   }
 }

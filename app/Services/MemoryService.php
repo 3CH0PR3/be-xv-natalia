@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Actions\Event\ResolveEventAction;
 use App\Actions\Memory\CreateMemoryAction;
 use App\Actions\Memory\DeleteMemoryAction;
 use App\Actions\Memory\DeleteMemoryMediaItemAction;
@@ -18,24 +19,24 @@ use App\DTOs\Memory\MemoryFilterData;
 use App\DTOs\Memory\ToggleReactionData;
 use App\DTOs\Memory\UpdateCaptionData;
 use App\DTOs\Shared\ViewerContextData;
-use App\Models\Event;
 use App\Models\Memory;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class MemoryService
+final readonly class MemoryService
 {
   public function __construct(
-    private readonly ListMemoriesAction $listMemories,
-    private readonly GetMemoryAction $getMemory,
-    private readonly GetMemoryPreviewAction $getMemoryPreview,
-    private readonly GetMemoryCoverImageAction $getCoverImage,
-    private readonly CreateMemoryAction $createMemory,
-    private readonly UpdateMemoryCaptionAction $updateCaption,
-    private readonly DeleteMemoryAction $deleteMemory,
-    private readonly DeleteMemoryMediaItemAction $deleteMediaItem,
-    private readonly ToggleMemoryReactionAction $toggleReaction,
-    private readonly IncrementMemoryShareAction $incrementShare,
+    private ResolveEventAction $resolveEvent,
+    private ListMemoriesAction $listMemories,
+    private GetMemoryAction $getMemory,
+    private GetMemoryPreviewAction $getMemoryPreview,
+    private GetMemoryCoverImageAction $getCoverImage,
+    private CreateMemoryAction $createMemory,
+    private UpdateMemoryCaptionAction $updateCaption,
+    private DeleteMemoryAction $deleteMemory,
+    private DeleteMemoryMediaItemAction $deleteMediaItem,
+    private ToggleMemoryReactionAction $toggleReaction,
+    private IncrementMemoryShareAction $incrementShare,
   ) {}
 
   public function listMemories(MemoryFilterData $filter, ViewerContextData $viewer): LengthAwarePaginator
@@ -48,9 +49,7 @@ class MemoryService
     return $this->getMemory->execute($externalId, $viewer);
   }
 
-  /**
-   * @return array{external_id: string, title: string, description: string, image_url: string}
-   */
+  /** @return array{external_id: string, title: string, description: string, image_url: string} */
   public function getMemoryPreview(string $externalId): array
   {
     return $this->getMemoryPreview->execute($externalId);
@@ -63,7 +62,8 @@ class MemoryService
 
   public function publishMemory(CreateMemoryData $data): Memory
   {
-    $event = Event::byCode($data->eventCode)->firstOrFail();
+    $event = $this->resolveEvent->execute($data->eventCode);
+
     return $this->createMemory->execute($event, $data);
   }
 
@@ -87,16 +87,8 @@ class MemoryService
     return $this->toggleReaction->execute($data);
   }
 
-  public function incrementShare(
-    IncrementShareData|string $data,
-    ?string $actorKey = null,
-    ?string $deviceId = null,
-    ?int $deviceLockId = null
-  ): Memory {
-    $dto = $data instanceof IncrementShareData
-      ? $data
-      : new IncrementShareData($data, $actorKey, $deviceId, $deviceLockId);
-
-    return $this->incrementShare->execute($dto);
+  public function incrementShare(IncrementShareData $data): Memory
+  {
+    return $this->incrementShare->execute($data);
   }
 }

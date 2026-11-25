@@ -9,12 +9,12 @@ use App\DTOs\Event\TogglePartyCelebrateData;
 use App\DTOs\Shared\ViewerContextData;
 use App\Models\Event;
 
-class EventStateService
+final readonly class EventStateService
 {
   public function __construct(
-    private readonly GetEventStateAction $getEventState,
-    private readonly TogglePartyCelebrateAction $toggleCelebrate,
-    private readonly ResolveEventAction $resolveEvent,
+    private GetEventStateAction $getEventState,
+    private TogglePartyCelebrateAction $toggleCelebrate,
+    private ResolveEventAction $resolveEvent,
   ) {}
 
   public function getEventState(ViewerContextData $viewer): array

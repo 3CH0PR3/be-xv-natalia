@@ -15,10 +15,13 @@ final class MediaFilePolicy
     'php', 'js', 'html', 'htm', 'css', 'json', 'xml',
   ];
 
+  private const RAW_UNSUPPORTED_EXTENSIONS = [
+    'dng', 'raw', 'cr2', 'nef', 'arw',
+  ];
+
   private const VALID_IMAGE_EXTENSIONS = [
     'jpg', 'jpeg', 'jfif', 'pjpeg', 'pjp', 'png', 'apng', 'webp', 'avif',
     'heic', 'heif', 'bmp', 'svg', 'tif', 'tiff', 'ico', 'cur', 'jxl',
-    'dng', 'raw', 'cr2', 'nef', 'arw',
   ];
 
   private const VALID_VIDEO_EXTENSIONS = [
@@ -49,6 +52,13 @@ final class MediaFilePolicy
   {
     if ($mime === 'image/gif' || $extension === 'gif') {
       return 'El formato GIF no está permitido. Solo se aceptan fotografías y videos.';
+    }
+
+    if (
+      ($extension !== '' && in_array($extension, self::RAW_UNSUPPORTED_EXTENSIONS, true)) ||
+      preg_match('/adobe-dng|x-dcraw|x-canon-cr2|x-nikon-nef|x-sony-arw/i', $mime) === 1
+    ) {
+      return 'Los archivos RAW/DNG de cámara profesional no son compatibles con la web. Sube la copia JPG o HEIC.';
     }
 
     if ($extension !== '' && in_array($extension, self::FORBIDDEN_EXTENSIONS, true)) {

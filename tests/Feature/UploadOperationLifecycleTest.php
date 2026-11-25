@@ -6,12 +6,14 @@ use App\Events\MemoryCreated;
 use App\Events\MemoryUpdated;
 use App\Events\UploadOperationUpdated;
 use App\Jobs\ProcessUploadOperationFileJob;
+use App\Models\EventTable;
 use App\Models\Memory;
 use App\Models\UploadOperation;
 use App\Models\UploadOperationFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -451,5 +453,215 @@ class UploadOperationLifecycleTest extends TestCase
       $this->assertLessThan(4096, strlen($encoded), 'El payload de Reverb superó el límite compacto de 4 KB.');
       return true;
     });
+  }
+
+  public function test_converted_heic_jpeg_is_stored_with_jpg_extension_and_generated_thumbnail(): void
+  {
+    Event::fake([UploadOperationUpdated::class, MemoryCreated::class, MemoryUpdated::class]);
+
+    $img = imagecreatetruecolor(800, 600);
+    $red = imagecolorallocate($img, 200, 40, 80);
+    imagefilledrectangle($img, 0, 0, 800, 600, $red);
+    ob_start();
+    imagejpeg($img, null, 90);
+    $jpegBytes = (string) ob_get_clean();
+    imagedestroy($img);
+
+    $this->postJson('/api/v1/upload-operations', [
+      'operationKey' => 'uop-heic-jpeg-thumb',
+      'caption' => 'Foto convertida HEIC',
+      'files' => [
+        [
+          'fileKey' => 'img-heic',
+          'originalName' => '23992.heic',
+          'mimeType' => 'image/jpeg',
+          'byteSize' => strlen($jpegBytes),
+          'chunkSize' => 2097152,
+          'totalChunks' => 1,
+          'sortOrder' => 0,
+        ],
+      ],
+    ], $this->headers)->assertStatus(201);
+
+    $this->call(
+      'POST',
+      '/api/v1/upload-operations/uop-heic-jpeg-thumb/files/img-heic/chunk-stream',
+      [],
+      [],
+      [],
+      [
+        'HTTP_X_DEVICE_ID' => $this->headers['X-Device-Id'],
+        'HTTP_X_ACTOR_KEY' => $this->headers['X-Actor-Key'],
+        'HTTP_X_CHUNK_INDEX' => '0',
+        'CONTENT_TYPE' => 'application/octet-stream',
+        'HTTP_ACCEPT' => 'application/json',
+      ],
+      $jpegBytes
+    )->assertStatus(200);
+
+    $file = UploadOperationFile::where('file_key', 'img-heic')->firstOrFail();
+    $this->assertEquals('completed', $file->status);
+    $this->assertStringEndsWith('.jpg', (string) $file->final_path);
+    $this->assertNotNull($file->mediaItem);
+    $this->assertNotEmpty($file->mediaItem->thumb_path);
+    $this->assertNotEquals($file->final_path, $file->mediaItem->thumb_path);
+    Storage::disk('public')->assertExists($file->final_path);
+    Storage::disk('public')->assertExists($file->mediaItem->thumb_path);
+  }
+
+  public function test_raw_dng_rejected_and_raw_heic_bytes_marked_unsupported_without_broken_image(): void
+  {
+    Event::fake([UploadOperationUpdated::class, MemoryCreated::class, MemoryUpdated::class]);
+
+    $init = $this->postJson('/api/v1/upload-operations', [
+      'operationKey' => 'uop-raw-and-heic',
+      'caption' => 'Validacion RAW y HEIC crudo',
+      'files' => [
+        [
+          'fileKey' => 'raw-1',
+          'originalName' => '30189.dng',
+          'mimeType' => 'image/x-adobe-dng',
+          'byteSize' => 4096,
+          'chunkSize' => 2097152,
+          'totalChunks' => 1,
+          'sortOrder' => 0,
+        ],
+        [
+          'fileKey' => 'raw-heic',
+          'originalName' => 'sin_convertir.heic',
+          'mimeType' => 'image/heic',
+          'byteSize' => 24,
+          'chunkSize' => 2097152,
+          'totalChunks' => 1,
+          'sortOrder' => 1,
+        ],
+      ],
+    ], $this->headers);
+
+    $init->assertStatus(201);
+    $init->assertJsonPath('data.files.0.status', 'failed');
+    $init->assertJsonPath('data.files.0.errorCode', 'INVALID_MEDIA_TYPE');
+
+    $fakeHeicBytes = "\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic";
+    $this->call(
+      'POST',
+      '/api/v1/upload-operations/uop-raw-and-heic/files/raw-heic/chunk-stream',
+      [],
+      [],
+      [],
+      [
+        'HTTP_X_DEVICE_ID' => $this->headers['X-Device-Id'],
+        'HTTP_X_ACTOR_KEY' => $this->headers['X-Actor-Key'],
+        'HTTP_X_CHUNK_INDEX' => '0',
+        'CONTENT_TYPE' => 'application/octet-stream',
+        'HTTP_ACCEPT' => 'application/json',
+      ],
+      $fakeHeicBytes
+    )->assertStatus(200);
+
+    $heicFile = UploadOperationFile::where('file_key', 'raw-heic')->firstOrFail();
+    $this->assertEquals('failed', $heicFile->status);
+    $this->assertEquals('UNSUPPORTED_IMAGE_ENCODING', $heicFile->error_code);
+    $this->assertEquals(0, Memory::count());
+  }
+
+  public function test_heavy_videos_route_to_media_heavy_queue_and_50_guests_succeed_concurrently(): void
+  {
+    Queue::fake();
+    Event::fake([UploadOperationUpdated::class, MemoryCreated::class, MemoryUpdated::class]);
+
+    $this->postJson('/api/v1/upload-operations', [
+      'operationKey' => 'uop-queue-split',
+      'caption' => 'Separacion de colas',
+      'files' => [
+        [
+          'fileKey' => 'vid-heavy',
+          'originalName' => 'vals_largo.mp4',
+          'mimeType' => 'video/mp4',
+          'byteSize' => 30 * 1024 * 1024,
+          'chunkSize' => 16777216,
+          'totalChunks' => 2,
+          'sortOrder' => 0,
+        ],
+      ],
+    ], $this->headers)->assertStatus(201);
+
+    $sendHeavyChunk = function (int $idx) {
+      return $this->call(
+        'POST',
+        '/api/v1/upload-operations/uop-queue-split/files/vid-heavy/chunk-stream',
+        [],
+        [],
+        [],
+        [
+          'HTTP_X_DEVICE_ID' => $this->headers['X-Device-Id'],
+          'HTTP_X_ACTOR_KEY' => $this->headers['X-Actor-Key'],
+          'HTTP_X_CHUNK_INDEX' => (string) $idx,
+          'CONTENT_TYPE' => 'application/octet-stream',
+          'HTTP_ACCEPT' => 'application/json',
+        ],
+        str_repeat('V', 1024)
+      );
+    };
+    $sendHeavyChunk(0)->assertStatus(200);
+    $sendHeavyChunk(1)->assertStatus(200);
+
+    Queue::assertPushedOn('media-heavy', ProcessUploadOperationFileJob::class);
+
+    $tableCodes = EventTable::orderBy('id')->pluck('code')->all();
+    $tableCount = max(1, count($tableCodes));
+
+    for ($guest = 0; $guest < 50; $guest++) {
+      $tableCode = $tableCodes[$guest % $tableCount] ?? 'Mesa 01 · Principal';
+      $firstLetter = chr(65 + intdiv($guest, 26));
+      $secondLetter = chr(65 + ($guest % 26));
+      $guestName = "Invitado {$firstLetter}{$secondLetter}";
+      $devId = "dev_guest_load_{$guest}";
+      $actorKey = "mesa-" . ($guest % $tableCount) . "__invitado-{$firstLetter}{$secondLetter}";
+      $this->postJson('/api/v1/checkin', [
+        'eventCode' => 'XV-NATALIA',
+        'tableCode' => $tableCode,
+        'guestName' => $guestName,
+        'deviceId' => $devId,
+        'actorKey' => $actorKey,
+      ])->assertStatus(201);
+
+      $opKey = "uop-guest-{$guest}";
+      $gHeaders = ['X-Device-Id' => $devId, 'X-Actor-Key' => $actorKey];
+      $this->postJson('/api/v1/upload-operations', [
+        'operationKey' => $opKey,
+        'caption' => "Recuerdo invitado {$guest}",
+        'files' => [
+          [
+            'fileKey' => "foto-{$guest}",
+            'originalName' => "recuerdo_{$guest}.jpg",
+            'mimeType' => 'image/jpeg',
+            'byteSize' => 512,
+            'chunkSize' => 2097152,
+            'totalChunks' => 1,
+            'sortOrder' => 0,
+          ],
+        ],
+      ], $gHeaders)->assertStatus(201);
+
+      $this->call(
+        'POST',
+        "/api/v1/upload-operations/{$opKey}/files/foto-{$guest}/chunk-stream",
+        [],
+        [],
+        [],
+        [
+          'HTTP_X_DEVICE_ID' => $devId,
+          'HTTP_X_ACTOR_KEY' => $actorKey,
+          'HTTP_X_CHUNK_INDEX' => '0',
+          'CONTENT_TYPE' => 'application/octet-stream',
+          'HTTP_ACCEPT' => 'application/json',
+        ],
+        str_repeat('J', 512)
+      )->assertStatus(200);
+    }
+
+    Queue::assertPushedOn('media-fast', ProcessUploadOperationFileJob::class);
+    $this->assertEquals(51, UploadOperation::count());
   }
 }

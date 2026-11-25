@@ -9,12 +9,12 @@ use App\DTOs\Table\GenerateTableQrsData;
 use App\DTOs\Table\ValidateQrData;
 use Illuminate\Support\Collection;
 
-class TableService
+final readonly class TableService
 {
   public function __construct(
-    private readonly ListTablesAction $listTables,
-    private readonly GenerateTableQrsAction $generateQrs,
-    private readonly ValidateQrAction $validateQr,
+    private ListTablesAction $listTables,
+    private GenerateTableQrsAction $generateQrs,
+    private ValidateQrAction $validateQr,
   ) {}
 
   public function listTables(string $eventCode): Collection

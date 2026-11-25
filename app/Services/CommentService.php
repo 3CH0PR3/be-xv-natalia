@@ -14,14 +14,14 @@ use App\DTOs\Shared\ViewerContextData;
 use App\Models\MemoryComment;
 use Illuminate\Support\Collection;
 
-class CommentService
+final readonly class CommentService
 {
   public function __construct(
-    private readonly ListCommentsAction $listComments,
-    private readonly CreateCommentAction $createComment,
-    private readonly UpdateCommentTextAction $updateComment,
-    private readonly DeleteCommentAction $deleteComment,
-    private readonly ToggleCommentLikeAction $toggleLike,
+    private ListCommentsAction $listComments,
+    private CreateCommentAction $createComment,
+    private UpdateCommentTextAction $updateComment,
+    private DeleteCommentAction $deleteComment,
+    private ToggleCommentLikeAction $toggleLike,
   ) {}
 
   public function listComments(string $memoryExternalId): Collection

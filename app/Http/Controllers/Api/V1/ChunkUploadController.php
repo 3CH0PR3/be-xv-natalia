@@ -20,28 +20,19 @@ class ChunkUploadController extends Controller
 
   public function init(InitChunkUploadRequest $request): JsonResponse
   {
-    $result = $this->chunkService->initUpload(
-      filename: trim((string) $request->input('filename')),
-      mimeType: trim((string) ($request->input('mimeType') ?: 'application/octet-stream')),
-      totalSize: (int) $request->input('totalSize'),
-      totalChunks: (int) $request->input('totalChunks'),
-      actorKey: $request->actorKey() ?: null,
-      deviceId: $request->deviceId() ?: null,
+    return $this->sendResponse(
+      $this->chunkService->initUpload($request->toDto()),
+      'Sesión de carga iniciada.',
+      Response::HTTP_CREATED
     );
-
-    return $this->sendResponse($result, 'Sesión de carga iniciada.', Response::HTTP_CREATED);
   }
 
   public function storeChunk(string $uploadKey, StoreChunkPartRequest $request): JsonResponse
   {
-    $result = $this->chunkService->storeChunk(
-      uploadKey: $uploadKey,
-      chunkIndex: (int) $request->input('chunkIndex'),
-      chunkFile: $request->file('chunk'),
-      actorKey: $request->actorKey() ?: null,
-      deviceId: $request->deviceId() ?: null,
+    return $this->sendResponse(
+      $this->chunkService->storeChunk($request->toDto($uploadKey)),
+      'Fragmento almacenado.',
+      200
     );
-
-    return $this->sendResponse($result, 'Fragmento almacenado.', 200);
   }
 }
