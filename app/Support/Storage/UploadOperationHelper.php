@@ -89,6 +89,16 @@ final class UploadOperationHelper
     return "memories/{$event->code}/{$operation->memory_external_id}/.staging-{$file->file_key}.tmp";
   }
 
+  public function chunkDirFor(Event $event, UploadOperation $operation, UploadOperationFile $file): string
+  {
+    return "memories/{$event->code}/{$operation->memory_external_id}/.staging-{$file->file_key}-chunks";
+  }
+
+  public function chunkPartPathFor(Event $event, UploadOperation $operation, UploadOperationFile $file, int $chunkIndex): string
+  {
+    return $this->chunkDirFor($event, $operation, $file) . "/{$chunkIndex}.part";
+  }
+
   public function finalPathFor(
     Event $event,
     UploadOperation $operation,
@@ -106,9 +116,23 @@ final class UploadOperationHelper
     if ($extension === '' || in_array($extension, ['heic', 'heif'], true)) {
       $extension = $file->media_type === 'video' ? 'mp4' : 'jpg';
     }
-    $safeStem = Str::slug(pathinfo($file->original_name, PATHINFO_FILENAME)) ?: 'media';
 
-    return "memories/{$event->code}/{$operation->memory_external_id}/{$safeStem}-{$file->file_key}.{$extension}";
+    $prefix = "memories/{$event->code}/{$operation->memory_external_id}/";
+    $suffix = "-{$file->file_key}.{$extension}";
+    $maxStemLen = max(8, min(80, 240 - strlen($prefix) - strlen($suffix)));
+    $rawSlug = Str::slug(pathinfo($file->original_name, PATHINFO_FILENAME)) ?: 'media';
+    $safeStem = rtrim(substr($rawSlug, 0, $maxStemLen), '-') ?: 'media';
+    $candidate = "{$prefix}{$safeStem}{$suffix}";
+
+    if (strlen($candidate) > 255) {
+      $hashStem = substr(sha1($file->file_key . '|' . $file->original_name), 0, 12);
+      $candidate = "{$prefix}{$hashStem}.{$extension}";
+      if (strlen($candidate) > 255) {
+        $candidate = substr($candidate, 0, max(1, 254 - strlen($extension))) . ".{$extension}";
+      }
+    }
+
+    return $candidate;
   }
 
   public function queueForFile(UploadOperationFile $file): string
@@ -432,12 +456,13 @@ final class UploadOperationHelper
     $eventCode = $fresh->event?->code ?? (string) config('xv.default_event_code', 'XV-NATALIA');
     $payload = (new MemoryResource($fresh))->resolve();
     $normalized = $this->normalizeUrlsForOrigin($payload, $requestOrigin);
+    $compacted = $this->compactMemoryBroadcastPayload($normalized);
 
     try {
       if ($isCreated) {
-        broadcast(new MemoryCreated($eventCode, $normalized));
+        broadcast(new MemoryCreated($eventCode, $compacted));
       } else {
-        broadcast(new MemoryUpdated($eventCode, $normalized));
+        broadcast(new MemoryUpdated($eventCode, $compacted));
       }
     } catch (\Throwable $e) {
       Log::warning('[UploadOperation] Non-fatal Memory broadcast error', [
@@ -447,7 +472,7 @@ final class UploadOperationHelper
     }
   }
 
-  public function writeStreamAtOffset(string $targetDisk, string $stagingPath, int $offset, $inputStream): int
+  public function writeChunkPartStream(string $targetDisk, string $partPath, $inputStream): int
   {
     $disk = Storage::disk($targetDisk);
     $driver = $disk->getConfig()['driver'] ?? 'local';
@@ -456,50 +481,63 @@ final class UploadOperationHelper
       if ($buffer === false || strlen($buffer) === 0) {
         return 0;
       }
-      $existing = $disk->exists($stagingPath) ? ($disk->get($stagingPath) ?: '') : '';
-      $prefix = str_pad(substr($existing, 0, $offset), $offset, "\0");
-      $suffix = strlen($existing) > $offset + strlen($buffer) ? substr($existing, $offset + strlen($buffer)) : '';
-      $disk->put($stagingPath, $prefix . $buffer . $suffix);
+      $disk->put($partPath, $buffer);
 
       return strlen($buffer);
     }
 
-    $tempBuf = fopen('php://temp/maxmemory:4194304', 'w+b');
-    if ($tempBuf === false) {
-      throw new DomainRuleException('TEMP_STREAM_ERROR', 'No se pudo inicializar el búfer temporal.', 500);
+    $absPath = $disk->path($partPath);
+    $parentDir = dirname($absPath);
+    if (!is_dir($parentDir)) {
+      @mkdir($parentDir, 0775, true);
+    }
+
+    $tmpPart = $absPath . '.tmp-' . str_replace('.', '', uniqid('', true));
+    $outHandle = fopen($tmpPart, 'wb');
+    if ($outHandle === false) {
+      throw new DomainRuleException('STAGING_OPEN_ERROR', 'No se pudo abrir el archivo temporal del fragmento.', 500);
     }
 
     try {
-      $copied = (int) stream_copy_to_stream($inputStream, $tempBuf);
-      if ($copied <= 0) {
-        return 0;
-      }
-      rewind($tempBuf);
-
-      $absPath = $disk->path($stagingPath);
-      $parentDir = dirname($absPath);
-      if (!is_dir($parentDir)) {
-        @mkdir($parentDir, 0775, true);
-      }
-
-      $targetHandle = fopen($absPath, 'c+b');
-      if ($targetHandle === false) {
-        throw new DomainRuleException('STAGING_OPEN_ERROR', 'No se pudo abrir el archivo de almacenamiento directo.', 500);
-      }
-
-      try {
-        flock($targetHandle, LOCK_EX);
-        fseek($targetHandle, $offset, SEEK_SET);
-        stream_copy_to_stream($tempBuf, $targetHandle);
-        fflush($targetHandle);
-        flock($targetHandle, LOCK_UN);
-      } finally {
-        fclose($targetHandle);
-      }
-
-      return $copied;
+      $copied = (int) stream_copy_to_stream($inputStream, $outHandle);
+      fflush($outHandle);
     } finally {
-      fclose($tempBuf);
+      fclose($outHandle);
+    }
+
+    if ($copied <= 0) {
+      @unlink($tmpPart);
+
+      return 0;
+    }
+
+    if (!@rename($tmpPart, $absPath)) {
+      @copy($tmpPart, $absPath);
+      @unlink($tmpPart);
+    }
+
+    return $copied;
+  }
+
+  public function deleteChunkDirectory(string $targetDisk, Event $event, UploadOperation $operation, UploadOperationFile $file): void
+  {
+    $chunkDir = $this->chunkDirFor($event, $operation, $file);
+    $disk = Storage::disk($targetDisk);
+    if ($disk->directoryExists($chunkDir)) {
+      $disk->deleteDirectory($chunkDir);
+    }
+  }
+
+  public function acquireBroadcastThrottle(int $operationId, int $ttlSeconds = 1): bool
+  {
+    if ($operationId <= 0) {
+      return true;
+    }
+
+    try {
+      return (bool) Redis::set("xv:op:{$operationId}:broadcast_throttle", '1', 'EX', max(1, $ttlSeconds), 'NX');
+    } catch (\Throwable) {
+      return true;
     }
   }
 
@@ -599,7 +637,7 @@ final class UploadOperationHelper
     if ($changedFile !== null) {
       $payload['updatedFile'] = $this->compactFileDelta($changedFile, $origin);
 
-      return $payload;
+      return $this->enforceOperationPayloadLimit($payload);
     }
 
     if ($operation->files->count() <= 4) {
@@ -609,7 +647,84 @@ final class UploadOperationHelper
         ->all();
     }
 
+    return $this->enforceOperationPayloadLimit($payload);
+  }
+
+  public function compactMemoryBroadcastPayload(array $memoryPayload): array
+  {
+    $limit = $this->maxBroadcastBytes();
+    $memoryPayload['reactions'] = [];
+
+    if ($this->encodedLength($memoryPayload) <= $limit) {
+      return $memoryPayload;
+    }
+
+    if (!empty($memoryPayload['comments']) && is_array($memoryPayload['comments'])) {
+      $memoryPayload['comments'] = array_slice($memoryPayload['comments'], -10);
+    }
+    if (!empty($memoryPayload['caption']) && is_string($memoryPayload['caption'])) {
+      $memoryPayload['caption'] = Str::limit($memoryPayload['caption'], 300);
+    }
+
+    if ($this->encodedLength($memoryPayload) <= $limit) {
+      return $memoryPayload;
+    }
+
+    $memoryPayload['comments'] = [];
+    if (!empty($memoryPayload['mediaItems']) && is_array($memoryPayload['mediaItems'])) {
+      $memoryPayload['mediaItems'] = array_map(static function (array $item): array {
+        return [
+          'id' => $item['id'] ?? '',
+          'mediaType' => $item['mediaType'] ?? 'image',
+          'imageUrl' => $item['imageUrl'] ?? '',
+          'thumbUrl' => $item['thumbUrl'] ?? '',
+          'posterUrl' => $item['posterUrl'] ?? '',
+        ];
+      }, $memoryPayload['mediaItems']);
+    }
+
+    if ($this->encodedLength($memoryPayload) <= $limit) {
+      return $memoryPayload;
+    }
+
+    if (!empty($memoryPayload['mediaItems']) && is_array($memoryPayload['mediaItems'])) {
+      while (count($memoryPayload['mediaItems']) > 1 && $this->encodedLength($memoryPayload) > $limit) {
+        array_pop($memoryPayload['mediaItems']);
+      }
+    }
+
+    return $memoryPayload;
+  }
+
+  private function enforceOperationPayloadLimit(array $payload): array
+  {
+    $limit = $this->maxBroadcastBytes();
+    if ($this->encodedLength($payload) <= $limit) {
+      return $payload;
+    }
+
+    unset($payload['files']);
+    if (!empty($payload['errorSummary'])) {
+      $payload['errorSummary'] = Str::limit((string) $payload['errorSummary'], 140);
+    }
+
     return $payload;
+  }
+
+  private function maxBroadcastBytes(): int
+  {
+    $serverMax = (int) config('reverb.servers.reverb.max_request_size', 524288);
+    $appMax = (int) config('reverb.apps.apps.0.max_message_size', 524288);
+    $effective = min($serverMax > 0 ? $serverMax : 524288, $appMax > 0 ? $appMax : 524288);
+
+    return max(16384, (int) floor($effective * 0.85));
+  }
+
+  private function encodedLength(array $payload): int
+  {
+    $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    return $json === false ? PHP_INT_MAX : strlen($json);
   }
 
   private function compactFileDelta(UploadOperationFile $file, ?string $origin): array

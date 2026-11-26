@@ -9,4 +9,7 @@ return [
   'db_scope_prefix' => env('XV_DB_SCOPE_PREFIX', 'laravel'),
   'table_default_capacity' => (int) env('XV_TABLE_CAPACITY', 10),
   'allow_desktop_capture' => env('APP_ENV') !== 'testing' && (bool) env('ALLOW_DESKTOP_CAPTURE', env('VITE_ALLOW_DESKTOP_CAPTURE', false)),
+  'ffmpeg_enabled' => (bool) env('FFMPEG_ENABLED', env('APP_ENV') !== 'testing'),
+  'ffmpeg_bin' => env('FFMPEG_BIN', ''),
+  'ffprobe_bin' => env('FFPROBE_BIN', ''),
 ];

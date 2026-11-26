@@ -125,9 +125,14 @@ class UploadOperation extends Model
     ], true);
   }
 
+  public function getProgressPercentAttribute(): int
+  {
+    return $this->progressPercent();
+  }
+
   public function progressPercent(): int
   {
-    if ($this->status === self::STATUS_COMPLETED) {
+    if (in_array($this->status, [self::STATUS_COMPLETED, self::STATUS_COMPLETED_WITH_ERRORS], true)) {
       return 100;
     }
 

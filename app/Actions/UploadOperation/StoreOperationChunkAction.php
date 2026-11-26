@@ -110,10 +110,9 @@ final readonly class StoreOperationChunkAction
     }
 
     $targetDisk = $file->disk ?: (string) config('xv.media_disk', 'public');
-    $stagingPath = $this->helper->stagingPathFor($event, $operation, $file);
-    $offset = $data->chunkIndex * (int) $file->chunk_size;
+    $partPath = $this->helper->chunkPartPathFor($event, $operation, $file, $data->chunkIndex);
 
-    $written = $this->helper->writeStreamAtOffset($targetDisk, $stagingPath, $offset, $inputStream);
+    $written = $this->helper->writeChunkPartStream($targetDisk, $partPath, $inputStream);
     if ($written <= 0 && $file->byte_size > 0) {
       throw new DomainRuleException('EMPTY_CHUNK_BODY', "El fragmento #{$data->chunkIndex} llegó vacío.", 422);
     }
@@ -122,10 +121,10 @@ final readonly class StoreOperationChunkAction
     $redisAvailable = $redisState['available'];
     $receivedCount = $redisState['count'];
     $allReceivedFast = $redisAvailable && $receivedCount >= $file->total_chunks;
-    $prevBucket = $file->total_chunks > 0 ? (int) floor((max(0, $receivedCount - 1) / $file->total_chunks) * 6) : 0;
-    $nextBucket = $file->total_chunks > 0 ? (int) floor(($receivedCount / $file->total_chunks) * 6) : 1;
+    $prevBucket = $file->total_chunks > 0 ? (int) floor((max(0, $receivedCount - 1) / $file->total_chunks) * 4) : 0;
+    $nextBucket = $file->total_chunks > 0 ? (int) floor(($receivedCount / $file->total_chunks) * 4) : 1;
 
-    $needsCheckpoint = $forceCheckpoint || !$redisAvailable || $data->chunkIndex === 0 || $allReceivedFast || $file->total_chunks <= 6 || ($nextBucket > $prevBucket);
+    $needsCheckpoint = $forceCheckpoint || !$redisAvailable || $data->chunkIndex === 0 || $allReceivedFast || ($nextBucket > $prevBucket);
     if (!$needsCheckpoint) {
       return [
         'operationKey' => $operation->operation_key,
@@ -140,18 +139,24 @@ final readonly class StoreOperationChunkAction
       ];
     }
 
-    return $this->commitChunkCheckpoint($operation, $file, $data->chunkIndex, $redisAvailable);
+    return $this->commitChunkCheckpoint($operation, $file, $data->chunkIndex, $redisAvailable, $forceCheckpoint);
   }
 
-  private function commitChunkCheckpoint(UploadOperation $operation, UploadOperationFile $file, int $chunkIndex, bool $redisAvailable): array
-  {
-    return DB::transaction(function () use ($operation, $file, $chunkIndex, $redisAvailable): array {
-      $lockedOp = UploadOperation::where('id', $operation->id)->lockForUpdate()->firstOrFail();
+  private function commitChunkCheckpoint(
+    UploadOperation $operation,
+    UploadOperationFile $file,
+    int $chunkIndex,
+    bool $redisAvailable,
+    bool $forceCheckpoint,
+  ): array {
+    return DB::transaction(function () use ($operation, $file, $chunkIndex, $redisAvailable, $forceCheckpoint): array {
       $lockedFile = UploadOperationFile::where('id', $file->id)->lockForUpdate()->firstOrFail();
 
       if ($lockedFile->status === UploadOperationFile::STATUS_COMPLETED) {
+        $freshCompletedOp = $operation->fresh(['event', 'memory', 'files.mediaItem']) ?? $operation;
+
         return [
-          'operationKey' => $lockedOp->operation_key,
+          'operationKey' => $freshCompletedOp->operation_key,
           'fileKey' => $lockedFile->file_key,
           'chunkIndex' => $chunkIndex,
           'receivedChunksCount' => (int) $lockedFile->total_chunks,
@@ -159,7 +164,7 @@ final readonly class StoreOperationChunkAction
           'uploadedBytes' => (int) $lockedFile->byte_size,
           'status' => $lockedFile->status,
           'allReceived' => true,
-          'operationModel' => $lockedOp->fresh(['event', 'memory', 'files.mediaItem']),
+          'operationModel' => $freshCompletedOp,
         ];
       }
 
@@ -187,25 +192,39 @@ final readonly class StoreOperationChunkAction
         'error_message' => null,
       ]);
 
-      $freshOp = $this->helper->recalculateOperation($lockedOp);
-      $freshChangedFile = $freshOp->files->firstWhere('id', $lockedFile->id);
+      $freshOp = null;
+      if ($allReceived || $forceCheckpoint) {
+        $lockedOp = UploadOperation::where('id', $operation->id)->lockForUpdate()->firstOrFail();
+        $freshOp = $this->helper->recalculateOperation($lockedOp);
+        $freshChangedFile = $freshOp->files->firstWhere('id', $lockedFile->id);
 
-      if ($allReceived && !in_array($prevStatus, [UploadOperationFile::STATUS_PROCESSING, UploadOperationFile::STATUS_COMPLETED], true)) {
-        if ($this->helper->acquireJobDispatchLock($lockedFile->id)) {
-          $queueName = $this->helper->queueForFile($lockedFile);
-          DB::afterCommit(function () use ($lockedFile, $freshOp, $freshChangedFile, $queueName): void {
-            $this->helper->broadcastOperation($freshOp, false, $freshChangedFile);
-            ProcessUploadOperationFileJob::dispatch($lockedFile->id, $queueName);
+        if ($allReceived && !in_array($prevStatus, [UploadOperationFile::STATUS_PROCESSING, UploadOperationFile::STATUS_COMPLETED], true)) {
+          if ($this->helper->acquireJobDispatchLock($lockedFile->id)) {
+            $queueName = $this->helper->queueForFile($lockedFile);
+            DB::afterCommit(function () use ($lockedFile, $freshOp, $freshChangedFile, $queueName): void {
+              $this->helper->broadcastOperation($freshOp, false, $freshChangedFile);
+              ProcessUploadOperationFileJob::dispatch($lockedFile->id, $queueName);
+            });
+          }
+        } else {
+          DB::afterCommit(function () use ($freshOp, $freshChangedFile): void {
+            $this->helper->broadcastOperation($freshOp, true, $freshChangedFile);
           });
         }
-      } else {
-        DB::afterCommit(function () use ($freshOp, $freshChangedFile): void {
-          $this->helper->broadcastOperation($freshOp, true, $freshChangedFile);
+      } elseif ($this->helper->acquireBroadcastThrottle($operation->id, 1)) {
+        $operationId = $operation->id;
+        $lockedFileId = $lockedFile->id;
+        DB::afterCommit(function () use ($operationId, $lockedFileId): void {
+          $readOp = UploadOperation::with(['event', 'memory', 'files.mediaItem'])->find($operationId);
+          if ($readOp) {
+            $changedFile = $readOp->files->firstWhere('id', $lockedFileId);
+            $this->helper->broadcastOperation($readOp, true, $changedFile);
+          }
         });
       }
 
       return [
-        'operationKey' => $freshOp->operation_key,
+        'operationKey' => $operation->operation_key,
         'fileKey' => $lockedFile->file_key,
         'chunkIndex' => $chunkIndex,
         'receivedChunksCount' => count($received),

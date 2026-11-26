@@ -32,7 +32,7 @@ final readonly class UpdateOperationFileMetaAction
 
     $meta = $data->meta;
 
-    return DB::transaction(function () use ($operation, $file, $meta): UploadOperation {
+    return DB::transaction(function () use ($event, $operation, $file, $meta): UploadOperation {
       $lockedOp = UploadOperation::where('id', $operation->id)->lockForUpdate()->firstOrFail();
       $lockedFile = UploadOperationFile::where('id', $file->id)->lockForUpdate()->firstOrFail();
 
@@ -62,6 +62,8 @@ final readonly class UpdateOperationFileMetaAction
       ]);
 
       $this->helper->clearRedisChunkKeys($lockedFile->id);
+      $targetDisk = $lockedFile->disk ?: (string) config('xv.media_disk', 'public');
+      $this->helper->deleteChunkDirectory($targetDisk, $event, $lockedOp, $lockedFile);
       $freshOp = $this->helper->recalculateOperation($lockedOp);
       $changedFile = $freshOp->files->firstWhere('id', $lockedFile->id);
 
