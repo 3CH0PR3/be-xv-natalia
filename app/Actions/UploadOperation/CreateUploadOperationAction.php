@@ -96,7 +96,7 @@ final readonly class CreateUploadOperationAction
   {
     $rawFiles = is_array($payload['files'] ?? null) ? $payload['files'] : [];
     $targetDisk = (string) config('xv.media_disk', 'public');
-    $maxFileBytes = max(1024 * 1024, (int) config('xv.max_upload_file_bytes', 500 * 1024 * 1024));
+    $maxFileBytes = max(1024 * 1024, (int) config('xv.max_upload_file_bytes', 700 * 1024 * 1024));
     $fileRows = [];
 
     foreach (array_values($rawFiles) as $index => $rawFile) {

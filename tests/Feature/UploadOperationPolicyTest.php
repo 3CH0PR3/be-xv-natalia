@@ -68,7 +68,7 @@ class UploadOperationPolicyTest extends TestCase
 
     $this->assertSame(UploadOperationFile::STATUS_FAILED, $failed['status']);
     $this->assertSame('FILE_TOO_LARGE', $failed['errorCode']);
-    $this->assertStringContainsString('500 MB', $failed['errorMessage']);
+    $this->assertStringContainsString('700 MB', $failed['errorMessage']);
 
     $this->assertSame(UploadOperationFile::STATUS_QUEUED_UPLOAD, $valid['status']);
     $this->assertNull($valid['errorCode']);
