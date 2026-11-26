@@ -96,6 +96,7 @@ final readonly class CreateUploadOperationAction
   {
     $rawFiles = is_array($payload['files'] ?? null) ? $payload['files'] : [];
     $targetDisk = (string) config('xv.media_disk', 'public');
+    $maxFileBytes = max(1024 * 1024, (int) config('xv.max_upload_file_bytes', 500 * 1024 * 1024));
     $fileRows = [];
 
     foreach (array_values($rawFiles) as $index => $rawFile) {
@@ -119,6 +120,11 @@ final readonly class CreateUploadOperationAction
         $status = UploadOperationFile::STATUS_FAILED;
         $errorCode = 'EMPTY_FILE';
         $errorMessage = "El archivo \"{$originalName}\" está vacío (0 bytes).";
+      } elseif ($byteSize > $maxFileBytes) {
+        $status = UploadOperationFile::STATUS_FAILED;
+        $errorCode = 'FILE_TOO_LARGE';
+        $maxMb = (int) round($maxFileBytes / (1024 * 1024));
+        $errorMessage = "El archivo \"{$originalName}\" supera el límite permitido de {$maxMb} MB.";
       } elseif ($validationError !== null) {
         $status = UploadOperationFile::STATUS_FAILED;
         $errorCode = 'INVALID_MEDIA_TYPE';
