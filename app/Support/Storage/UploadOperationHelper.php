@@ -640,12 +640,13 @@ final class UploadOperationHelper
       return $this->enforceOperationPayloadLimit($payload);
     }
 
-    if ($operation->files->count() <= 4) {
-      $payload['files'] = $operation->files
-        ->map(fn ($file) => $this->compactFileDelta($file, $origin))
-        ->values()
-        ->all();
-    }
+    // Incluir files[] siempre — el enforceOperationPayloadLimit los recorta si el payload
+    // es demasiado grande para Reverb. Sin files[], el frontend no puede actualizar
+    // el estado individual de cada archivo y queda pegado en "Procesando en servidor".
+    $payload['files'] = $operation->files
+      ->map(fn ($file) => $this->compactFileDelta($file, $origin))
+      ->values()
+      ->all();
 
     return $this->enforceOperationPayloadLimit($payload);
   }
@@ -703,7 +704,10 @@ final class UploadOperationHelper
       return $payload;
     }
 
+    // Payload demasiado grande para Reverb — quitar files[] pero marcar que fueron omitidos
+    // para que el frontend sepa que debe hacer un fetch para obtener el estado completo.
     unset($payload['files']);
+    $payload['filesOmitted'] = true;
     if (!empty($payload['errorSummary'])) {
       $payload['errorSummary'] = Str::limit((string) $payload['errorSummary'], 140);
     }

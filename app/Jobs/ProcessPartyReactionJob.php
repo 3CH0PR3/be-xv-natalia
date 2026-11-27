@@ -28,7 +28,7 @@ class ProcessPartyReactionJob implements ShouldQueue
     public ?string $deviceId = null,
     public ?int $count = null
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(): void

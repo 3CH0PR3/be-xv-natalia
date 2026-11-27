@@ -26,7 +26,7 @@ class ProcessTableOccupancyJob implements ShouldQueue
     public int|string $eventId,
     public ?array $tablesPayload = null
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(): void

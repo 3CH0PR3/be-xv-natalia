@@ -26,7 +26,7 @@ class ProcessShareJob implements ShouldQueue
     public int|string $memoryId,
     public ?int $sharesCount = null
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(): void

@@ -27,7 +27,7 @@ class ProcessCommentJob implements ShouldQueue
     public int|string $commentId,
     public bool $shouldBroadcast = true
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(): void

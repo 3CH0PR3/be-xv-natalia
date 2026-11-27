@@ -32,7 +32,7 @@ class ProcessLikeJob implements ShouldQueue
     public ?string $deviceId = null,
     public bool $shouldBroadcast = true
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(): void

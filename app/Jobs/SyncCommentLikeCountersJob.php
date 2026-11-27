@@ -19,7 +19,7 @@ class SyncCommentLikeCountersJob implements ShouldQueue
   public function __construct(
     public int $limit = 200,
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(CommentLikeCounterService $service): void

@@ -22,7 +22,7 @@ class ProcessMediaOptimizationJob implements ShouldQueue
   public function __construct(
     public int|string $mediaItemId
   ) {
-    $this->queue = 'default';
+    $this->queue = 'media-fast';
   }
 
   public function handle(): void

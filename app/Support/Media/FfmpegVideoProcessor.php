@@ -165,7 +165,10 @@ final readonly class FfmpegVideoProcessor
         '-pix_fmt',
         'yuv420p',
         '-vf',
-        'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+        // Escalar a máximo 1920x1080 (1080p) manteniendo aspecto original.
+        // force_original_aspect_ratio=decrease: solo baja si supera el límite.
+        // pad + trunc: garantiza dimensiones pares que libx264 requiere.
+        'scale=w=min(iw\,1920):h=min(ih\,1080):force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2',
         '-c:a',
         'aac',
         '-b:a',

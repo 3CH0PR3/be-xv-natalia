@@ -22,7 +22,7 @@ class ProcessProfileUpdateJob implements ShouldQueue
     public string $eventCode,
     public array $profileData
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(): void

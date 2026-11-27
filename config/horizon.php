@@ -97,7 +97,8 @@ return [
   */
 
   'waits' => [
-    'redis:default' => 60,
+    'redis:high'       => 5,
+    'redis:default'    => 15,
     'redis:media-fast' => 30,
     'redis:media-heavy' => 180,
   ],
@@ -185,7 +186,7 @@ return [
   |
   */
 
-  'memory_limit' => 64,
+  'memory_limit' => 256,
 
   /*
   |--------------------------------------------------------------------------
@@ -199,28 +200,45 @@ return [
   */
 
   'defaults' => [
-    'supervisor-fast' => [
+    // Realtime: likes, comentarios, reacciones, broadcasts — nunca bloqueados por media
+    'supervisor-realtime' => [
       'connection' => 'redis',
-      'queue' => ['media-fast', 'default'],
-      'balance' => 'auto',
-      'autoScalingStrategy' => 'time',
-      'maxProcesses' => 6,
+      'queue' => ['high', 'default'],
+      'balance' => 'simple',
+      'processes' => 4,
       'maxTime' => 0,
       'maxJobs' => 0,
       'memory' => 128,
       'tries' => 3,
-      'timeout' => 90,
+      'timeout' => 30,
       'nice' => 0,
     ],
-    'supervisor-heavy' => [
+    // Media ligera: fotos WebP, thumbnails, chunks pequeños
+    'supervisor-media-fast' => [
+      'connection' => 'redis',
+      'queue' => ['media-fast'],
+      'balance' => 'auto',
+      'autoScalingStrategy' => 'time',
+      'minProcesses' => 3,
+      'maxProcesses' => 6,
+      'maxTime' => 0,
+      'maxJobs' => 0,
+      'memory' => 192,
+      'tries' => 2,
+      'timeout' => 120,
+      'nice' => 2,
+    ],
+    // Media pesada: videos grandes, FFmpeg, subida R2
+    'supervisor-media-heavy' => [
       'connection' => 'redis',
       'queue' => ['media-heavy'],
       'balance' => 'auto',
       'autoScalingStrategy' => 'time',
-      'maxProcesses' => 2,
+      'minProcesses' => 1,
+      'maxProcesses' => 3,
       'maxTime' => 0,
       'maxJobs' => 0,
-      'memory' => 256,
+      'memory' => 512,
       'tries' => 2,
       'timeout' => 600,
       'nice' => 5,
@@ -229,24 +247,36 @@ return [
 
   'environments' => [
     'production' => [
-      'supervisor-fast' => [
+      'supervisor-realtime' => [
         'connection' => 'redis',
-        'queue' => ['media-fast', 'default'],
-        'balance' => 'auto',
-        'minProcesses' => 2,
-        'maxProcesses' => 8,
+        'queue' => ['high', 'default'],
+        'balance' => 'simple',
+        'processes' => 4,
         'memory' => 128,
         'tries' => 3,
-        'timeout' => 90,
+        'timeout' => 30,
         'nice' => 0,
       ],
-      'supervisor-heavy' => [
+      'supervisor-media-fast' => [
+        'connection' => 'redis',
+        'queue' => ['media-fast'],
+        'balance' => 'auto',
+        'autoScalingStrategy' => 'time',
+        'minProcesses' => 3,
+        'maxProcesses' => 8,
+        'memory' => 192,
+        'tries' => 2,
+        'timeout' => 120,
+        'nice' => 2,
+      ],
+      'supervisor-media-heavy' => [
         'connection' => 'redis',
         'queue' => ['media-heavy'],
         'balance' => 'auto',
+        'autoScalingStrategy' => 'time',
         'minProcesses' => 1,
         'maxProcesses' => 3,
-        'memory' => 256,
+        'memory' => 512,
         'tries' => 2,
         'timeout' => 600,
         'nice' => 5,
@@ -254,23 +284,32 @@ return [
     ],
 
     'local' => [
-      'supervisor-fast' => [
+      'supervisor-realtime' => [
         'connection' => 'redis',
-        'queue' => ['media-fast', 'default'],
-        'balance' => 'auto',
-        'minProcesses' => 2,
-        'maxProcesses' => 6,
+        'queue' => ['high', 'default'],
+        'balance' => 'simple',
+        'processes' => 2,
         'memory' => 128,
         'tries' => 3,
-        'timeout' => 90,
+        'timeout' => 30,
       ],
-      'supervisor-heavy' => [
+      'supervisor-media-fast' => [
+        'connection' => 'redis',
+        'queue' => ['media-fast'],
+        'balance' => 'auto',
+        'minProcesses' => 1,
+        'maxProcesses' => 4,
+        'memory' => 192,
+        'tries' => 2,
+        'timeout' => 120,
+      ],
+      'supervisor-media-heavy' => [
         'connection' => 'redis',
         'queue' => ['media-heavy'],
         'balance' => 'auto',
         'minProcesses' => 1,
         'maxProcesses' => 2,
-        'memory' => 256,
+        'memory' => 512,
         'tries' => 2,
         'timeout' => 600,
       ],

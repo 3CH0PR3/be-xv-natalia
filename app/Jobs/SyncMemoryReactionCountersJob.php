@@ -19,7 +19,7 @@ class SyncMemoryReactionCountersJob implements ShouldQueue
   public function __construct(
     public int $limit = 200,
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(MemoryReactionCounterService $service): void

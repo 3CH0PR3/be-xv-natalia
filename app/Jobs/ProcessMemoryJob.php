@@ -26,7 +26,7 @@ class ProcessMemoryJob implements ShouldQueue
     public int|string $memoryId,
     public bool $shouldBroadcast = true
   ) {
-    $this->queue = 'default';
+    $this->queue = 'high';
   }
 
   public function handle(): void
