@@ -115,19 +115,19 @@ class CommentTest extends TestCase
   {
     $this->postJson('/api/v1/checkin', [
       'eventCode' => 'XV-NATALIA',
-      'tableCode' => 'Mesa 01 · Principal',
+      'tableCode' => 'Mesa 1',
       'guestName' => 'Andres Perez',
       'deviceId' => 'dev-andres-apk',
-      'actorKey' => 'mesa-01-principal__andres-perez',
+      'actorKey' => 'mesa-1__andres-perez',
     ])->assertStatus(201);
 
     $file = UploadedFile::fake()->image('photo.jpg');
     $memRes = $this->withHeaders(['X-Device-Id' => 'dev-andres-apk'])
       ->postJson('/api/v1/memories', [
         'guestName' => 'Andres Perez',
-        'tableCode' => 'Mesa 01 · Principal',
+        'tableCode' => 'Mesa 1',
         'ownerDeviceId' => 'dev-andres-apk',
-        'ownerActorKey' => 'mesa-01-principal__andres-perez',
+        'ownerActorKey' => 'mesa-1__andres-perez',
         'files' => [$file],
       ]);
     $memoryId = $memRes->json('data.id');
@@ -135,13 +135,13 @@ class CommentTest extends TestCase
     // Andres comments from browser with a new deviceId but matching actorKey
     $commentRes = $this->withHeaders([
       'X-Device-Id' => 'dev-andres-browser-new-id',
-      'X-Actor-Key' => 'mesa-01-principal__andres-perez',
+      'X-Actor-Key' => 'mesa-1__andres-perez',
     ])->postJson("/api/v1/memories/{$memoryId}/comments", [
       'author' => 'Andres Perez',
-      'table' => 'Mesa 01 · Principal',
+      'table' => 'Mesa 1',
       'text' => 'Comentario desde mi navegador!',
       'deviceId' => 'dev-andres-browser-new-id',
-      'actorKey' => 'mesa-01-principal__andres-perez',
+      'actorKey' => 'mesa-1__andres-perez',
     ]);
 
     $commentRes->assertStatus(201)

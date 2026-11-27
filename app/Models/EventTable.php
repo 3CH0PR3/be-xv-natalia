@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,13 +11,12 @@ use Illuminate\Support\Str;
 
 class EventTable extends Model
 {
+  use HasVersion7Uuids;
   protected $fillable = [
     'event_id',
     'slug',
     'number',
     'code',
-    'zone',
-    'centerpiece',
     'capacity',
     'qr_token',
     'qr_image_path',
@@ -53,7 +53,7 @@ class EventTable extends Model
     return $this->hasMany(Memory::class);
   }
 
-  public function scopeForEvent(Builder $query, int $eventId): Builder
+  public function scopeForEvent(Builder $query, int|string $eventId): Builder
   {
     return $query->where('event_id', $eventId);
   }
@@ -67,11 +67,18 @@ class EventTable extends Model
   {
     $clean = trim($identifier);
     $slug = Str::of($clean)->ascii()->lower()->replaceMatches('/[^a-z0-9]+/', '-')->trim('-')->toString();
+    $paddedNumber = null;
+    if (preg_match('/^(?:mesa[\s\-_]*)?0*(\d{1,2})\b/i', $clean, $matches)) {
+      $paddedNumber = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+    }
 
-    return $query->where(function (Builder $q) use ($clean, $slug): void {
+    return $query->where(function (Builder $q) use ($clean, $slug, $paddedNumber): void {
       $q->where('slug', $slug)
         ->orWhere('code', $clean)
         ->orWhere('number', $clean);
+      if ($paddedNumber !== null) {
+        $q->orWhere('number', $paddedNumber);
+      }
     });
   }
 

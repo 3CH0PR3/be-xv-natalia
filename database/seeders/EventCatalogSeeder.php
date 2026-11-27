@@ -23,12 +23,12 @@ class EventCatalogSeeder extends Seeder
     );
 
     $catalog = [
-      ['slug' => 'mesa-01', 'number' => '01', 'code' => 'Mesa 01 · Principal', 'zone' => 'Tarima de Honor · Frente a Pista', 'centerpiece' => 'Rosas blancas e iluminación cálida'],
-      ['slug' => 'mesa-02', 'number' => '02', 'code' => 'Mesa 02 · Orquídea', 'zone' => 'Ala Norte · Jardín Interior', 'centerpiece' => 'Orquídeas imperiales y cristal'],
-      ['slug' => 'mesa-03', 'number' => '03', 'code' => 'Mesa 03 · Magnolia', 'zone' => 'Ala Norte · Jardín Interior', 'centerpiece' => 'Magnolias silvestres y velas altas'],
-      ['slug' => 'mesa-04', 'number' => '04', 'code' => 'Mesa 04 · Esmeralda', 'zone' => 'Sector Central · Pista de Vals', 'centerpiece' => 'Follaje esmeralda y candelabro'],
-      ['slug' => 'mesa-05', 'number' => '05', 'code' => 'Mesa 05 · Laurel', 'zone' => 'Sector Central · Pista de Vals', 'centerpiece' => 'Ramas de laurel y rosas marfil'],
-      ['slug' => 'mesa-06', 'number' => '06', 'code' => 'Mesa 06 · Jazmín', 'zone' => 'Terraza Cubierta · Lounge', 'centerpiece' => 'Jazmines aromáticos y piedra oscura'],
+      ['slug' => 'mesa-01', 'number' => '01', 'code' => 'Mesa 1'],
+      ['slug' => 'mesa-02', 'number' => '02', 'code' => 'Mesa 2'],
+      ['slug' => 'mesa-03', 'number' => '03', 'code' => 'Mesa 3'],
+      ['slug' => 'mesa-04', 'number' => '04', 'code' => 'Mesa 4'],
+      ['slug' => 'mesa-05', 'number' => '05', 'code' => 'Mesa 5'],
+      ['slug' => 'mesa-06', 'number' => '06', 'code' => 'Mesa 6'],
     ];
 
     foreach ($catalog as $row) {

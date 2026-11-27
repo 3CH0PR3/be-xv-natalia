@@ -140,7 +140,7 @@ class TableAndCheckinTest extends TestCase
     // 3. Una vez liberada por la anfitriona, Daniela escanea Mesa 02 y se registra conservando su perfil
     $reassignRes = $this->postJson('/api/v1/checkin', $transferPayload);
     $reassignRes->assertStatus(201)
-      ->assertJsonPath('data.tableCode', 'Mesa 02 · Orquídea');
+      ->assertJsonPath('data.tableCode', 'Mesa 2');
   }
 
   public function test_can_resolve_device_lock(): void
@@ -258,9 +258,7 @@ class TableAndCheckinTest extends TestCase
     $tableData = [
       'id' => 'mesa-01',
       'number' => '01',
-      'code' => 'Mesa 01 · Principal',
-      'zone' => 'Tarima de Honor',
-      'centerpiece' => 'Rosas blancas',
+      'code' => 'Mesa 1',
       'capacity' => 10,
       'guests' => [
         [

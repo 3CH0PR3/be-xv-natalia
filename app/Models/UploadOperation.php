@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class UploadOperation extends Model
 {
+  use HasVersion7Uuids;
   public const STATUS_QUEUED = 'queued';
   public const STATUS_UPLOADING = 'uploading';
   public const STATUS_PROCESSING = 'processing';
@@ -83,7 +85,7 @@ class UploadOperation extends Model
     return $this->hasMany(UploadOperationFile::class)->orderBy('sort_order')->orderBy('id');
   }
 
-  public function scopeForEvent(Builder $query, int $eventId): Builder
+  public function scopeForEvent(Builder $query, int|string $eventId): Builder
   {
     return $query->where('event_id', $eventId);
   }

@@ -62,7 +62,7 @@ class ToggleCommentLikeAction
     });
   }
 
-  private function findExistingLike(int $commentId, string $actorKey, ?string $deviceId): ?MemoryCommentLike
+  private function findExistingLike(int|string $commentId, string $actorKey, ?string $deviceId): ?MemoryCommentLike
   {
     $query = MemoryCommentLike::where('comment_id', $commentId);
     if ($deviceId) {

@@ -12,7 +12,7 @@ final readonly class ManageCommentLikeCountersAction
   private const DIRTY_SET = 'comments:dirty_likes';
   private const TTL_SECONDS = 86400;
 
-  public function get(int $commentId, int $fallback = 0): int
+  public function get(int|string $commentId, int $fallback = 0): int
   {
     try {
       $val = Redis::get(self::KEY_PREFIX . $commentId);
@@ -39,7 +39,7 @@ final readonly class ManageCommentLikeCountersAction
     }
 
     try {
-      $keys = array_map(static fn (int $id): string => self::KEY_PREFIX . $id, $commentIds);
+      $keys = array_map(static fn (int|string $id): string => self::KEY_PREFIX . $id, $commentIds);
       $values = Redis::mGet($keys);
       $result = [];
 
@@ -65,7 +65,7 @@ final readonly class ManageCommentLikeCountersAction
     }
   }
 
-  public function set(int $commentId, int $count): void
+  public function set(int|string $commentId, int $count): void
   {
     try {
       Redis::setex(self::KEY_PREFIX . $commentId, self::TTL_SECONDS, max(0, $count));
@@ -73,7 +73,7 @@ final readonly class ManageCommentLikeCountersAction
     }
   }
 
-  public function increment(int $commentId, int $initialFallback = 0): int
+  public function increment(int|string $commentId, int $initialFallback = 0): int
   {
     try {
       $key = self::KEY_PREFIX . $commentId;
@@ -90,7 +90,7 @@ final readonly class ManageCommentLikeCountersAction
     }
   }
 
-  public function decrement(int $commentId, int $initialFallback = 0): int
+  public function decrement(int|string $commentId, int $initialFallback = 0): int
   {
     try {
       $key = self::KEY_PREFIX . $commentId;
@@ -123,7 +123,7 @@ final readonly class ManageCommentLikeCountersAction
       $syncedCount = 0;
 
       foreach ($batch as $id) {
-        $commentId = (int) $id;
+        $commentId = (string) $id;
         $countVal = Redis::get(self::KEY_PREFIX . $commentId);
         if ($countVal !== null && $countVal !== false) {
           MemoryComment::where('id', $commentId)->update(['likes_count' => max(0, (int) $countVal)]);
@@ -138,7 +138,7 @@ final readonly class ManageCommentLikeCountersAction
     }
   }
 
-  public function clear(int $commentId): void
+  public function clear(int|string $commentId): void
   {
     try {
       Redis::del(self::KEY_PREFIX . $commentId);

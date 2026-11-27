@@ -25,7 +25,7 @@ class CreateMemoryAction
 
   public function execute(Event $event, CreateMemoryData $data): Memory
   {
-    $table = EventTable::forEvent($event->id)->where('code', $data->tableCode)->first();
+    $table = EventTable::forEvent($event->id)->matchingIdentifier($data->tableCode)->first();
     $nowMs = (int) round(microtime(true) * 1000);
     $externalId = $data->externalId ?: ('xv-nat-' . $nowMs);
     $disk = config('xv.media_disk', 'public');

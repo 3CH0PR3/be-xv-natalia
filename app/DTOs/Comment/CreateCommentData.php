@@ -12,7 +12,7 @@ final readonly class CreateCommentData
     public string $text,
     public ?string $ownerDeviceId,
     public ?string $ownerActorKey,
-    public ?int $deviceLockId = null,
+    public int|string|null $deviceLockId = null,
   ) {}
 
   public static function fromArray(array $data): self

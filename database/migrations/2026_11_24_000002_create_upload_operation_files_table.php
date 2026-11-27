@@ -9,10 +9,10 @@ return new class extends Migration
   public function up(): void
   {
     Schema::create('upload_operation_files', function (Blueprint $table) {
-      $table->id();
-      $table->foreignId('upload_operation_id')->constrained('upload_operations')->cascadeOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('upload_operation_id')->constrained('upload_operations')->cascadeOnDelete();
       $table->string('file_key', 128);
-      $table->foreignId('memory_media_item_id')->nullable()->constrained('memory_media_items')->nullOnDelete();
+      $table->foreignUuid('memory_media_item_id')->nullable()->constrained('memory_media_items')->nullOnDelete();
       $table->string('original_name', 255);
       $table->string('mime_type', 120)->default('application/octet-stream');
       $table->enum('media_type', ['image', 'video'])->default('image');

@@ -19,7 +19,7 @@ class StoreMemoryRequest extends FormRequest
     return [
       'id' => ['nullable', 'string', 'max:128'],
       'externalId' => ['nullable', 'string', 'max:128'],
-      'deviceLockId' => ['nullable', 'integer'],
+      'deviceLockId' => ['nullable', 'string', 'max:64'],
       'eventCode' => ['nullable', 'string', 'max:48'],
       'guestName' => ['required', 'string', 'min:1', 'max:80'],
       'tableCode' => ['required', 'string', 'min:1', 'max:80'],
@@ -81,7 +81,7 @@ class StoreMemoryRequest extends FormRequest
       files: $this->file('files', []) ?: [],
       posters: $this->file('posters', []) ?: [],
       externalId: $this->filled('id') ? trim((string) $this->input('id')) : ($this->filled('externalId') ? trim((string) $this->input('externalId')) : null),
-      deviceLockId: $this->input('deviceLockId') ? (int) $this->input('deviceLockId') : null,
+      deviceLockId: $this->input('deviceLockId') ? trim((string) $this->input('deviceLockId')) : null,
       uploadedKeys: is_array($rawKeys) ? array_values(array_filter(array_map('strval', $rawKeys))) : [],
       fileOrder: is_array($rawOrder) ? array_values(array_map('strval', $rawOrder)) : [],
     );

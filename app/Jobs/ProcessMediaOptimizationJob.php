@@ -20,7 +20,7 @@ class ProcessMediaOptimizationJob implements ShouldQueue
   public int $timeout = 60;
 
   public function __construct(
-    public int $mediaItemId
+    public int|string $mediaItemId
   ) {
     $this->queue = 'default';
   }

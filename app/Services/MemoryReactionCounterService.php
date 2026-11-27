@@ -14,7 +14,7 @@ final readonly class MemoryReactionCounterService
    * @param array{likes?: int, fires?: int, cheers?: int} $fallbacks
    * @return array{likes: int, fires: int, cheers: int}
    */
-  public function getCounts(int $memoryId, array $fallbacks = []): array
+  public function getCounts(int|string $memoryId, array $fallbacks = []): array
   {
     return $this->counters->getCounts($memoryId, $fallbacks);
   }
@@ -23,7 +23,7 @@ final readonly class MemoryReactionCounterService
    * @param array{likes?: int, fires?: int, cheers?: int} $fallbacks
    * @return array{likes: int, fires: int, cheers: int}
    */
-  public function adjust(int $memoryId, ?string $prevChoice, ?string $nextChoice, array $fallbacks = []): array
+  public function adjust(int|string $memoryId, ?string $prevChoice, ?string $nextChoice, array $fallbacks = []): array
   {
     return $this->counters->adjust($memoryId, $prevChoice, $nextChoice, $fallbacks);
   }

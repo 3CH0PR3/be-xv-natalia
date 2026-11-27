@@ -8,7 +8,7 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('events', function (Blueprint $table): void {
-      $table->id();
+      $table->uuid('id')->primary();
       $table->string('code', 48)->unique();
       $table->string('honoree_name', 120)->default('Natalia Isabella');
       $table->string('subtitle', 160)->nullable();

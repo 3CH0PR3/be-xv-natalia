@@ -23,7 +23,6 @@ class ProfileListItemResource extends JsonResource
       'location' => $this->location,
       'tableCode' => $this->table?->code,
       'tableNumber' => $this->table?->number,
-      'tableZone' => $this->table?->zone,
       'joinedAt' => optional($this->locked_at ?? $this->created_at)->toIso8601String(),
     ];
   }

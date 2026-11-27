@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DeviceFingerprintIndex extends Model
 {
+  use HasVersion7Uuids;
   protected $table = 'device_fingerprint_index';
 
   protected $fillable = [
@@ -26,7 +28,7 @@ class DeviceFingerprintIndex extends Model
     return $this->belongsTo(DeviceLock::class);
   }
 
-  public function scopeForCandidates(Builder $query, int $eventId, array $candidates): Builder
+  public function scopeForCandidates(Builder $query, int|string $eventId, array $candidates): Builder
   {
     return $query->where('event_id', $eventId)
       ->whereIn('fingerprint', array_values($candidates));

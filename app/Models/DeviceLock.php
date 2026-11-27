@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use App\Observers\DeviceLockObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,7 @@ use Illuminate\Support\Str;
 #[ObservedBy([DeviceLockObserver::class])]
 class DeviceLock extends Model
 {
+  use HasVersion7Uuids;
   protected $fillable = [
     'event_id',
     'event_table_id',
@@ -75,7 +77,7 @@ class DeviceLock extends Model
     return $this->hasMany(MemoryShare::class);
   }
 
-  public function scopeForEvent(Builder $query, int $eventId): Builder
+  public function scopeForEvent(Builder $query, int|string $eventId): Builder
   {
     return $query->where('event_id', $eventId);
   }
@@ -108,7 +110,7 @@ class DeviceLock extends Model
       ->toString();
   }
 
-  public function belongsToTable(int $tableId): bool
+  public function belongsToTable(int|string $tableId): bool
   {
     return (int) $this->event_table_id === $tableId;
   }
@@ -116,24 +118,34 @@ class DeviceLock extends Model
   public function getAvatarUrlAttribute(): ?string
   {
     if (!$this->avatar_path) return null;
-    $identifier = $this->actor_key ?: $this->id;
+    $diskName = (string) config('xv.media_disk', 'public');
+    $driver = (string) (config("filesystems.disks.{$diskName}.driver") ?? 'local');
     $v = $this->updated_at?->timestamp ?? $this->created_at?->timestamp;
     $query = $v ? "?v={$v}" : '';
+    if ($driver !== 'local') {
+      return Storage::disk($diskName)->url($this->avatar_path) . $query;
+    }
+    $identifier = $this->actor_key ?: $this->id;
     if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
       return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/avatar{$query}";
     }
-    return Storage::disk(config('xv.media_disk', 'public'))->url($this->avatar_path) . $query;
+    return Storage::disk($diskName)->url($this->avatar_path) . $query;
   }
 
   public function getCoverUrlAttribute(): ?string
   {
     if (!$this->cover_path) return null;
-    $identifier = $this->actor_key ?: $this->id;
+    $diskName = (string) config('xv.media_disk', 'public');
+    $driver = (string) (config("filesystems.disks.{$diskName}.driver") ?? 'local');
     $v = $this->updated_at?->timestamp ?? $this->created_at?->timestamp;
     $query = $v ? "?v={$v}" : '';
+    if ($driver !== 'local') {
+      return Storage::disk($diskName)->url($this->cover_path) . $query;
+    }
+    $identifier = $this->actor_key ?: $this->id;
     if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
       return rtrim($req->getSchemeAndHttpHost(), '/') . "/api/v1/profile/{$identifier}/cover{$query}";
     }
-    return Storage::disk(config('xv.media_disk', 'public'))->url($this->cover_path) . $query;
+    return Storage::disk($diskName)->url($this->cover_path) . $query;
   }
 }

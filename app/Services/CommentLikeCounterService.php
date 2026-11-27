@@ -10,7 +10,7 @@ final readonly class CommentLikeCounterService
     private ManageCommentLikeCountersAction $counters,
   ) {}
 
-  public function get(int $commentId, int $fallback = 0): int
+  public function get(int|string $commentId, int $fallback = 0): int
   {
     return $this->counters->get($commentId, $fallback);
   }
@@ -25,17 +25,17 @@ final readonly class CommentLikeCounterService
     return $this->counters->getMultiple($commentIds, $fallbacks);
   }
 
-  public function set(int $commentId, int $count): void
+  public function set(int|string $commentId, int $count): void
   {
     $this->counters->set($commentId, $count);
   }
 
-  public function increment(int $commentId, int $initialFallback = 0): int
+  public function increment(int|string $commentId, int $initialFallback = 0): int
   {
     return $this->counters->increment($commentId, $initialFallback);
   }
 
-  public function decrement(int $commentId, int $initialFallback = 0): int
+  public function decrement(int|string $commentId, int $initialFallback = 0): int
   {
     return $this->counters->decrement($commentId, $initialFallback);
   }
@@ -45,7 +45,7 @@ final readonly class CommentLikeCounterService
     return $this->counters->syncDirtyCounters($limit);
   }
 
-  public function clear(int $commentId): void
+  public function clear(int|string $commentId): void
   {
     $this->counters->clear($commentId);
   }

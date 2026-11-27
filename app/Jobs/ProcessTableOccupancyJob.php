@@ -23,7 +23,7 @@ class ProcessTableOccupancyJob implements ShouldQueue
   public int $timeout = 30;
 
   public function __construct(
-    public int $eventId,
+    public int|string $eventId,
     public ?array $tablesPayload = null
   ) {
     $this->queue = 'default';

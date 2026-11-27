@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use App\Observers\MemoryMediaItemObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 #[ObservedBy([MemoryMediaItemObserver::class])]
 class MemoryMediaItem extends Model
 {
+  use HasVersion7Uuids;
   protected $fillable = [
     'memory_id',
     'external_id',
@@ -49,11 +51,16 @@ class MemoryMediaItem extends Model
 
   public function publicUrls(): array
   {
-    $disk = Storage::disk($this->disk ?: config('xv.media_disk', 'public'));
+    $diskName = $this->disk ?: config('xv.media_disk', 'public');
+    $driver = (string) (config("filesystems.disks.{$diskName}.driver") ?? 'local');
+    $disk = Storage::disk($diskName);
 
-    $resolveUrl = static function (?string $path) use ($disk): string {
+    $resolveUrl = static function (?string $path) use ($disk, $driver): string {
       if (!$path) {
         return '';
+      }
+      if ($driver !== 'local') {
+        return $disk->url($path);
       }
       if (app()->bound('request') && ($req = app('request')) instanceof \Illuminate\Http\Request) {
         $base = $req->getSchemeAndHttpHost();

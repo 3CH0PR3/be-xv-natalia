@@ -8,9 +8,9 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('device_locks', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
-      $table->foreignId('event_table_id')->nullable()->constrained('event_tables')->nullOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('event_id')->constrained('events')->cascadeOnDelete();
+      $table->foreignUuid('event_table_id')->nullable()->constrained('event_tables')->nullOnDelete();
       $table->string('device_id', 128);
       $table->string('hw_fingerprint', 128)->nullable();
       $table->json('fingerprint_candidates')->nullable();

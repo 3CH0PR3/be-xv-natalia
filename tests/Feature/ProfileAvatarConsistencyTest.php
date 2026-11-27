@@ -132,7 +132,7 @@ class ProfileAvatarConsistencyTest extends TestCase
 
     // 6. Check Table Resource: guests in table must contain avatarUrl
     $table = EventTable::where('event_id', $lock->event_id)
-      ->where('code', 'Mesa 01 · Principal')
+      ->where('code', 'Mesa 1')
       ->with('deviceLocks')
       ->firstOrFail();
     $tableResource = (new EventTableResource($table))->toArray(request());

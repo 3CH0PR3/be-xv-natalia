@@ -8,8 +8,8 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('memory_comment_likes', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('comment_id')->constrained('memory_comments')->cascadeOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('comment_id')->constrained('memory_comments')->cascadeOnDelete();
       $table->string('actor_key', 128);
       $table->string('device_id', 128)->nullable();
       $table->timestamps();

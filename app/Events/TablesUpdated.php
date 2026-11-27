@@ -35,8 +35,6 @@ class TablesUpdated implements ShouldBroadcastNow
         'id' => $t['id'] ?? '',
         'number' => $t['number'] ?? '',
         'code' => $t['code'] ?? '',
-        'zone' => $t['zone'] ?? '',
-        'centerpiece' => $t['centerpiece'] ?? '',
         'capacity' => $t['capacity'] ?? 10,
         'guests' => $t['guests'] ?? [],
         'guestsConnected' => $t['guestsConnected'] ?? (isset($t['guests']) ? count($t['guests']) : 0),

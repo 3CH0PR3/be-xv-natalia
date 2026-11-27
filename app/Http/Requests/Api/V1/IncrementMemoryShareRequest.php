@@ -17,7 +17,7 @@ class IncrementMemoryShareRequest extends FormRequest
     return [
       'actorKey' => ['nullable', 'string', 'max:255'],
       'deviceId' => ['nullable', 'string', 'max:255'],
-      'deviceLockId' => ['nullable', 'integer'],
+      'deviceLockId' => ['nullable', 'string', 'max:64'],
     ];
   }
 
@@ -25,7 +25,7 @@ class IncrementMemoryShareRequest extends FormRequest
   {
     $actorKey = trim((string) ($this->actorKey() ?: $this->input('actorKey', '')));
     $deviceId = trim((string) ($this->deviceId() ?: $this->input('deviceId', '')));
-    $deviceLockId = $this->input('deviceLockId') ? (int) $this->input('deviceLockId') : null;
+    $deviceLockId = $this->input('deviceLockId') ? trim((string) $this->input('deviceLockId')) : null;
 
     return new IncrementShareData(
       externalId: $externalId,

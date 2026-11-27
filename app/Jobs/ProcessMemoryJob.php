@@ -23,7 +23,7 @@ class ProcessMemoryJob implements ShouldQueue
   public int $timeout = 60;
 
   public function __construct(
-    public int $memoryId,
+    public int|string $memoryId,
     public bool $shouldBroadcast = true
   ) {
     $this->queue = 'default';

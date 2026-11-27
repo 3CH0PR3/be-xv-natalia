@@ -20,7 +20,7 @@ final readonly class ProcessUploadOperationFileAction
     private FfmpegVideoProcessor $ffmpeg,
   ) {}
 
-  public function execute(int $uploadOperationFileId): void
+  public function execute(int|string $uploadOperationFileId): void
   {
     $file = UploadOperationFile::with(['operation.event', 'operation.deviceLock'])->find($uploadOperationFileId);
     if (!$file || !$file->operation) {
@@ -185,7 +185,7 @@ final readonly class ProcessUploadOperationFileAction
         $isNewMemory = true;
       }
 
-      if ((int) $lockedOp->memory_id !== (int) $memory->id) {
+      if ((string) $lockedOp->memory_id !== (string) $memory->id) {
         $lockedOp->update(['memory_id' => $memory->id]);
       }
 
@@ -239,7 +239,7 @@ final readonly class ProcessUploadOperationFileAction
     });
   }
 
-  public function cleanupFailedStaging(int $uploadOperationFileId): void
+  public function cleanupFailedStaging(int|string $uploadOperationFileId): void
   {
     $file = UploadOperationFile::with('operation.event')->find($uploadOperationFileId);
     if (!$file || !$file->operation || !$file->operation->event) {
@@ -275,26 +275,132 @@ final readonly class ProcessUploadOperationFileAction
       'posterPath' => null,
     ];
 
-    $driver = $targetDisk->getConfig()['driver'] ?? 'local';
-    if ($driver !== 'local' || !$this->ffmpeg->isAvailable()) {
+    if (!$this->ffmpeg->isAvailable()) {
       return $result;
     }
 
-    $stagingAbs = $targetDisk->path($stagingPath);
+    $driver = $targetDisk->getConfig()['driver'] ?? 'local';
+    if ($driver === 'local') {
+      $this->runFfmpegOnLocalPath(
+        stagingAbs: $targetDisk->path($stagingPath),
+        onTranscoded: function (string $transcodedAbs) use ($targetDisk, $stagingPath, &$result): ?string {
+          if (!$this->ffmpeg->transcodeToMp4($targetDisk->path($stagingPath), $transcodedAbs)) {
+            return null;
+          }
+          $targetDisk->delete($stagingPath);
+          $targetDisk->move($stagingPath . '.mp4', $stagingPath);
+          $result['overrideExt'] = 'mp4';
+          $result['resolvedMime'] = 'video/mp4';
+          $result['byteSize'] = (int) $targetDisk->size($stagingPath);
+          return $targetDisk->path($stagingPath);
+        },
+        posterTargetFor: static fn (string $posterRel): string => $targetDisk->path($posterRel),
+        onPosterReady: static function (string $posterRel) use (&$result): void {
+          $result['posterPath'] = $posterRel;
+        },
+        transcodedAbs: $targetDisk->path($stagingPath . '.mp4'),
+        event: $event,
+        operation: $operation,
+        file: $file,
+      );
+      return $result;
+    }
+
+    // Remote disk (e.g. Cloudflare R2 / S3): work via local temp files and stream back
+    $tmpInput = tempnam(sys_get_temp_dir(), 'xv_ff_in_');
+    $tmpTranscoded = tempnam(sys_get_temp_dir(), 'xv_ff_out_') . '.mp4';
+    $tmpPoster = tempnam(sys_get_temp_dir(), 'xv_ff_img_') . '.jpg';
+    if ($tmpInput === false) {
+      return $result;
+    }
+
+    try {
+      $inStream = $targetDisk->readStream($stagingPath);
+      if ($inStream === false) {
+        return $result;
+      }
+      $outHandle = fopen($tmpInput, 'wb');
+      try {
+        if ($outHandle !== false) {
+          stream_copy_to_stream($inStream, $outHandle);
+        }
+      } finally {
+        if (is_resource($outHandle)) {
+          fclose($outHandle);
+        }
+        if (is_resource($inStream)) {
+          fclose($inStream);
+        }
+      }
+
+      $this->runFfmpegOnLocalPath(
+        stagingAbs: $tmpInput,
+        onTranscoded: function (string $transcodedPath) use ($targetDisk, $stagingPath, $tmpInput, &$result): ?string {
+          if (!$this->ffmpeg->transcodeToMp4($tmpInput, $transcodedPath) || !is_file($transcodedPath)) {
+            return null;
+          }
+          $readStream = fopen($transcodedPath, 'rb');
+          if ($readStream !== false) {
+            try {
+              $targetDisk->writeStream($stagingPath, $readStream);
+            } finally {
+              fclose($readStream);
+            }
+          }
+          $result['overrideExt'] = 'mp4';
+          $result['resolvedMime'] = 'video/mp4';
+          $result['byteSize'] = (int) (filesize($transcodedPath) ?: $targetDisk->size($stagingPath));
+          return $transcodedPath;
+        },
+        posterTargetFor: static fn (): string => $tmpPoster,
+        onPosterReady: static function (string $posterRel) use ($targetDisk, $tmpPoster, &$result): void {
+          if (!is_file($tmpPoster)) {
+            return;
+          }
+          $posterStream = fopen($tmpPoster, 'rb');
+          if ($posterStream !== false) {
+            try {
+              $targetDisk->writeStream($posterRel, $posterStream);
+              $result['posterPath'] = $posterRel;
+            } finally {
+              fclose($posterStream);
+            }
+          }
+        },
+        transcodedAbs: $tmpTranscoded,
+        event: $event,
+        operation: $operation,
+        file: $file,
+      );
+
+      return $result;
+    } finally {
+      foreach ([$tmpInput, $tmpTranscoded, $tmpPoster] as $tmpFile) {
+        if (is_string($tmpFile) && is_file($tmpFile)) {
+          @unlink($tmpFile);
+        }
+      }
+    }
+  }
+
+  private function runFfmpegOnLocalPath(
+    string $stagingAbs,
+    callable $onTranscoded,
+    callable $posterTargetFor,
+    callable $onPosterReady,
+    string $transcodedAbs,
+    Event $event,
+    UploadOperation $operation,
+    UploadOperationFile $file,
+  ): void {
     $probe = null;
 
     if ($this->ffmpeg->requiresTranscode($file->original_name, $file->mime_type)) {
       $probe = $this->ffmpeg->probeMetadata($stagingAbs);
       if ($probe['hasVideo'] || $probe['hasAudio']) {
-        $transcodedRel = $stagingPath . '.mp4';
-        $transcodedAbs = $targetDisk->path($transcodedRel);
-        if ($this->ffmpeg->transcodeToMp4($stagingAbs, $transcodedAbs)) {
-          $targetDisk->delete($stagingPath);
-          $targetDisk->move($transcodedRel, $stagingPath);
-          $result['overrideExt'] = 'mp4';
-          $result['resolvedMime'] = 'video/mp4';
-          $result['byteSize'] = (int) $targetDisk->size($stagingPath);
-          $stagingAbs = $targetDisk->path($stagingPath);
+        $nextStaging = $onTranscoded($transcodedAbs);
+        if (is_string($nextStaging) && $nextStaging !== '') {
+          $stagingAbs = $nextStaging;
           $probe = $this->ffmpeg->probeMetadata($stagingAbs);
         }
       }
@@ -305,14 +411,12 @@ final readonly class ProcessUploadOperationFileAction
       $probe = $probe ?? $this->ffmpeg->probeMetadata($stagingAbs);
       if ($probe['hasVideo']) {
         $posterRel = "memories/{$event->code}/{$operation->memory_external_id}/posters/{$file->file_key}.jpg";
-        $posterAbs = $targetDisk->path($posterRel);
+        $posterAbs = $posterTargetFor($posterRel);
         if ($this->ffmpeg->extractPosterJpg($stagingAbs, $posterAbs)) {
-          $result['posterPath'] = $posterRel;
+          $onPosterReady($posterRel);
         }
       }
     }
-
-    return $result;
   }
 
   private function assembleFromChunkParts(

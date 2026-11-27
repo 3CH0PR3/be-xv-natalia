@@ -19,7 +19,7 @@ class ProcessUploadOperationFileJob implements ShouldQueue
   public int $timeout = 600;
 
   public function __construct(
-    public int $uploadOperationFileId,
+    public int|string $uploadOperationFileId,
     string $queueName = 'media-fast'
   ) {
     $this->queue = $queueName;

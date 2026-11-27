@@ -8,8 +8,8 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('party_reactions', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('event_id')->constrained('events')->cascadeOnDelete();
       $table->string('actor_key', 128);
       $table->string('device_id', 128)->nullable();
       $table->timestamps();

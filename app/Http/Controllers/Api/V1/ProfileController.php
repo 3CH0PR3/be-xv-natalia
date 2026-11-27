@@ -12,6 +12,7 @@ use App\Services\ProfileService;
 use App\Traits\Api\ApiResponser;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
 {
@@ -30,12 +31,12 @@ class ProfileController extends Controller
     );
   }
 
-  public function avatar(string $id): BinaryFileResponse
+  public function avatar(string $id): BinaryFileResponse|StreamedResponse
   {
     return $this->service->getAvatar($id);
   }
 
-  public function cover(string $id): BinaryFileResponse
+  public function cover(string $id): BinaryFileResponse|StreamedResponse
   {
     return $this->service->getCover($id);
   }

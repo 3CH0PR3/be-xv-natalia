@@ -79,7 +79,7 @@ class ToggleMemoryReactionAction
     });
   }
 
-  private function createReactionRecordIfActive(int $memoryId, ToggleReactionData $data, bool $isToggleOff): string
+  private function createReactionRecordIfActive(int|string $memoryId, ToggleReactionData $data, bool $isToggleOff): string
   {
     $isValidChoice = in_array($data->choice, MemoryReaction::CHOICES, true);
     if ($isToggleOff || !$isValidChoice) {

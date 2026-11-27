@@ -8,9 +8,9 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('memory_shares', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('memory_id')->constrained('memories')->cascadeOnDelete();
-      $table->foreignId('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('memory_id')->constrained('memories')->cascadeOnDelete();
+      $table->foreignUuid('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
       $table->string('actor_key', 128);
       $table->string('device_id', 128)->nullable();
       $table->timestamps();

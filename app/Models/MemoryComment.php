@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use App\Observers\MemoryCommentObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ObservedBy([MemoryCommentObserver::class])]
 class MemoryComment extends Model
 {
+  use HasVersion7Uuids;
   protected $fillable = [
     'external_id',
     'memory_id',

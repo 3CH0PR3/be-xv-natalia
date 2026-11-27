@@ -30,7 +30,7 @@ final readonly class MarkOperationFileFailedAction
     return $this->executeById($file->id, $data->errorCode, $data->errorMessage);
   }
 
-  public function executeById(int $fileId, string $errorCode, string $errorMessage): UploadOperation
+  public function executeById(int|string $fileId, string $errorCode, string $errorMessage): UploadOperation
   {
     return DB::transaction(function () use ($fileId, $errorCode, $errorMessage): UploadOperation {
       $targetFile = UploadOperationFile::findOrFail($fileId);

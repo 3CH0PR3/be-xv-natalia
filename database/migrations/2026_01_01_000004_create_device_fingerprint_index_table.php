@@ -8,9 +8,9 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('device_fingerprint_index', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
-      $table->foreignId('device_lock_id')->constrained('device_locks')->cascadeOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('event_id')->constrained('events')->cascadeOnDelete();
+      $table->foreignUuid('device_lock_id')->constrained('device_locks')->cascadeOnDelete();
       $table->string('fingerprint', 128);
       $table->timestamps();
 

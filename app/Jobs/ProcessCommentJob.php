@@ -24,7 +24,7 @@ class ProcessCommentJob implements ShouldQueue
   public int $timeout = 30;
 
   public function __construct(
-    public int $commentId,
+    public int|string $commentId,
     public bool $shouldBroadcast = true
   ) {
     $this->queue = 'default';

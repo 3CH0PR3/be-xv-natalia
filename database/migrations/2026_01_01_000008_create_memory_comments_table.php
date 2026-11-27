@@ -8,10 +8,10 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('memory_comments', function (Blueprint $table): void {
-      $table->id();
+      $table->uuid('id')->primary();
       $table->string('external_id', 128)->unique('uq_memory_comments_external_id');
-      $table->foreignId('memory_id')->constrained('memories')->cascadeOnDelete();
-      $table->foreignId('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
+      $table->foreignUuid('memory_id')->constrained('memories')->cascadeOnDelete();
+      $table->foreignUuid('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
       $table->string('author', 80);
       $table->string('table_label', 80);
       $table->string('text', 500);

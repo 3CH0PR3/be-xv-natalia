@@ -13,6 +13,7 @@ use App\DTOs\Profile\UpdateProfileData;
 use App\DTOs\Profile\ViewProfileData;
 use App\Http\Resources\Api\V1\ProfileListItemResource;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final readonly class ProfileService
 {
@@ -39,12 +40,12 @@ final readonly class ProfileService
     ];
   }
 
-  public function getAvatar(string $id): BinaryFileResponse
+  public function getAvatar(string $id): BinaryFileResponse|StreamedResponse
   {
     return $this->getProfileMedia->execute($id, 'avatar');
   }
 
-  public function getCover(string $id): BinaryFileResponse
+  public function getCover(string $id): BinaryFileResponse|StreamedResponse
   {
     return $this->getProfileMedia->execute($id, 'cover');
   }

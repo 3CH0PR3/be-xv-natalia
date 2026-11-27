@@ -40,7 +40,7 @@ class MemoryCommentObserver
     $this->forgetItem(EventKeys::memoryComments($comment->memory_id));
   }
 
-  private function recountComments(int $memoryId): void
+  private function recountComments(int|string $memoryId): void
   {
     $exactCount = MemoryComment::where('memory_id', $memoryId)->count();
     Memory::whereKey($memoryId)->update(['comments_count' => $exactCount]);

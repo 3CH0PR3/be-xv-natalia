@@ -79,7 +79,7 @@ final readonly class UploadOperationService
     return $this->markFailedAction->execute($data);
   }
 
-  public function markFileFailedById(int $fileId, string $errorCode, string $errorMessage): UploadOperation
+  public function markFileFailedById(int|string $fileId, string $errorCode, string $errorMessage): UploadOperation
   {
     return $this->markFailedAction->executeById($fileId, $errorCode, $errorMessage);
   }
@@ -109,7 +109,7 @@ final readonly class UploadOperationService
     $this->helper->broadcastOperation($operation, $toOthers, $changedFile);
   }
 
-  public function clearRedisChunkKeys(int $fileId): void
+  public function clearRedisChunkKeys(int|string $fileId): void
   {
     $this->helper->clearRedisChunkKeys($fileId);
   }

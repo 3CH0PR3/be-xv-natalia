@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class AppRelease extends Model
 {
+  use HasVersion7Uuids;
   protected $fillable = [
     'version',
     'version_order',

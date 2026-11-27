@@ -23,7 +23,7 @@ class ProcessShareJob implements ShouldQueue
   public int $timeout = 30;
 
   public function __construct(
-    public int $memoryId,
+    public int|string $memoryId,
     public ?int $sharesCount = null
   ) {
     $this->queue = 'default';

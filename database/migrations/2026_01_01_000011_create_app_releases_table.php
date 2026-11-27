@@ -8,7 +8,7 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('app_releases', function (Blueprint $table): void {
-      $table->id();
+      $table->uuid('id')->primary();
       $table->string('version', 40)->unique('uq_app_releases_version');
       $table->unsignedBigInteger('version_order')->default(1000000);
       $table->enum('type', ['major', 'minor', 'patch'])->default('minor');

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MemoryShare extends Model
 {
+  use HasVersion7Uuids;
   protected $fillable = [
     'memory_id',
     'device_lock_id',

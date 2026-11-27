@@ -17,7 +17,7 @@ final readonly class ManageMemoryReactionCountersAction
    * @param array{likes?: int, fires?: int, cheers?: int} $fallbacks
    * @return array{likes: int, fires: int, cheers: int}
    */
-  public function getCounts(int $memoryId, array $fallbacks = []): array
+  public function getCounts(int|string $memoryId, array $fallbacks = []): array
   {
     $defaultLikes = max(0, (int) ($fallbacks['likes'] ?? 0));
     $defaultFires = max(0, (int) ($fallbacks['fires'] ?? 0));
@@ -36,7 +36,7 @@ final readonly class ManageMemoryReactionCountersAction
         && ($vals[2] === null || $vals[2] === false);
 
       if ($isRedisEmpty) {
-        if ($defaultLikes === 0 && $defaultFires === 0 && $defaultCheers === 0 && $memoryId > 0) {
+        if ($defaultLikes === 0 && $defaultFires === 0 && $defaultCheers === 0 && (string) $memoryId !== '') {
           $defaultLikes = MemoryReaction::where('memory_id', $memoryId)->where('choice', 'likes')->count();
           $defaultFires = MemoryReaction::where('memory_id', $memoryId)->where('choice', 'fires')->count();
           $defaultCheers = MemoryReaction::where('memory_id', $memoryId)->where('choice', 'cheers')->count();
@@ -66,7 +66,7 @@ final readonly class ManageMemoryReactionCountersAction
    * @param array{likes?: int, fires?: int, cheers?: int} $fallbacks
    * @return array{likes: int, fires: int, cheers: int}
    */
-  public function adjust(int $memoryId, ?string $prevChoice, ?string $nextChoice, array $fallbacks = []): array
+  public function adjust(int|string $memoryId, ?string $prevChoice, ?string $nextChoice, array $fallbacks = []): array
   {
     $current = $this->getCounts($memoryId, $fallbacks);
     if ($prevChoice === $nextChoice) {
@@ -96,7 +96,7 @@ final readonly class ManageMemoryReactionCountersAction
       $syncedCount = 0;
 
       foreach ($batch as $id) {
-        $memoryId = (int) $id;
+        $memoryId = (string) $id;
         $counts = $this->getCounts($memoryId);
 
         Memory::where('id', $memoryId)->update([
@@ -115,7 +115,7 @@ final readonly class ManageMemoryReactionCountersAction
     }
   }
 
-  private function decrementChoice(int $memoryId, ?string $choice, array &$current): void
+  private function decrementChoice(int|string $memoryId, ?string $choice, array &$current): void
   {
     if (!$choice || !in_array($choice, ['likes', 'fires', 'cheers'], true)) {
       return;
@@ -135,7 +135,7 @@ final readonly class ManageMemoryReactionCountersAction
     $current[$choice] = $val;
   }
 
-  private function incrementChoice(int $memoryId, ?string $choice, array &$current): void
+  private function incrementChoice(int|string $memoryId, ?string $choice, array &$current): void
   {
     if (!$choice || !in_array($choice, ['likes', 'fires', 'cheers'], true)) {
       return;

@@ -15,7 +15,7 @@ class IncrementMemoryShareAction
     IncrementShareData|string $data,
     ?string $actorKey = null,
     ?string $deviceId = null,
-    ?int $deviceLockId = null
+    int|string|null $deviceLockId = null
   ): Memory {
     $dto = $data instanceof IncrementShareData
       ? $data

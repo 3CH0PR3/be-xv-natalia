@@ -41,7 +41,7 @@ final readonly class CreateUploadOperationAction
     $memoryExternalId = trim((string) ($payload['memoryExternalId'] ?? ''))
       ?: ('xv-nat-' . ((int) round(microtime(true) * 1000)) . '-' . Str::lower(Str::random(6)));
     $guestName = trim((string) ($payload['guestName'] ?? '')) ?: ($deviceLock?->guest_name ?: 'Invitado');
-    $tableCode = trim((string) ($payload['tableCode'] ?? '')) ?: ($deviceLock?->table?->code ?: 'Mesa 01 · Principal');
+    $tableCode = trim((string) ($payload['tableCode'] ?? '')) ?: ($deviceLock?->table?->code ?: 'Mesa 1');
     $momentTag = trim((string) ($payload['momentTag'] ?? '')) ?: 'Fiesta en Vivo';
     $caption = trim((string) ($payload['caption'] ?? ''));
 

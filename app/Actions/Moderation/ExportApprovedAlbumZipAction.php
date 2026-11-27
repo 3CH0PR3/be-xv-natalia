@@ -21,18 +21,66 @@ class ExportApprovedAlbumZipAction
       throw new DomainRuleException('ZIP_CREATE_FAILED', 'No se pudo generar el archivo ZIP.', 500);
     }
 
-    foreach ($memories as $memory) {
-      $folder = Str::slug("{$memory->table_code}-{$memory->guest_name}-{$memory->external_id}");
-      foreach ($memory->mediaItems as $idx => $item) {
-        $fullPath = Storage::disk($item->disk ?: config('xv.media_disk', 'public'))->path($item->file_path);
-        if (is_file($fullPath)) {
-          $ext = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpg';
-          $zip->addFile($fullPath, "{$folder}/archivo-" . ($idx + 1) . ".{$ext}");
+    $tempFiles = [];
+    try {
+      foreach ($memories as $memory) {
+        $folder = Str::slug("{$memory->table_code}-{$memory->guest_name}-{$memory->external_id}");
+        foreach ($memory->mediaItems as $idx => $item) {
+          $diskName = $item->disk ?: (string) config('xv.media_disk', 'public');
+          $driver = (string) (config("filesystems.disks.{$diskName}.driver") ?? 'local');
+          $disk = Storage::disk($diskName);
+          $ext = pathinfo((string) $item->file_path, PATHINFO_EXTENSION) ?: 'jpg';
+          $entryName = "{$folder}/archivo-" . ($idx + 1) . ".{$ext}";
+
+          if ($driver === 'local') {
+            $fullPath = $disk->path($item->file_path);
+            if (is_file($fullPath)) {
+              $zip->addFile($fullPath, $entryName);
+            }
+            continue;
+          }
+
+          if (!$disk->exists($item->file_path)) {
+            continue;
+          }
+          $stream = $disk->readStream($item->file_path);
+          if ($stream === false) {
+            continue;
+          }
+          $tmpItem = tempnam(sys_get_temp_dir(), 'xv_zip_item_');
+          if ($tmpItem === false) {
+            if (is_resource($stream)) {
+              fclose($stream);
+            }
+            continue;
+          }
+          $out = fopen($tmpItem, 'wb');
+          try {
+            if ($out !== false) {
+              stream_copy_to_stream($stream, $out);
+            }
+          } finally {
+            if (is_resource($out)) {
+              fclose($out);
+            }
+            if (is_resource($stream)) {
+              fclose($stream);
+            }
+          }
+          $tempFiles[] = $tmpItem;
+          $zip->addFile($tmpItem, $entryName);
+        }
+      }
+
+      $zip->close();
+    } finally {
+      foreach ($tempFiles as $tmpFile) {
+        if (is_file($tmpFile)) {
+          @unlink($tmpFile);
         }
       }
     }
 
-    $zip->close();
     return $tmpZip;
   }
 }

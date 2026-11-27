@@ -8,6 +8,6 @@ final readonly class IncrementShareData
     public string $externalId,
     public ?string $actorKey = null,
     public ?string $deviceId = null,
-    public ?int $deviceLockId = null,
+    public int|string|null $deviceLockId = null,
   ) {}
 }

@@ -8,8 +8,8 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('memory_reactions', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('memory_id')->constrained('memories')->cascadeOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('memory_id')->constrained('memories')->cascadeOnDelete();
       $table->string('actor_key', 128);
       $table->string('device_id', 128)->nullable();
       $table->enum('choice', ['likes', 'fires', 'cheers']);

@@ -9,12 +9,12 @@ return new class extends Migration
   public function up(): void
   {
     Schema::create('upload_operations', function (Blueprint $table) {
-      $table->id();
+      $table->uuid('id')->primary();
       $table->string('operation_key', 128)->unique();
-      $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
-      $table->foreignId('event_table_id')->nullable()->constrained('event_tables')->nullOnDelete();
-      $table->foreignId('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
-      $table->foreignId('memory_id')->nullable()->constrained('memories')->nullOnDelete();
+      $table->foreignUuid('event_id')->constrained('events')->cascadeOnDelete();
+      $table->foreignUuid('event_table_id')->nullable()->constrained('event_tables')->nullOnDelete();
+      $table->foreignUuid('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
+      $table->foreignUuid('memory_id')->nullable()->constrained('memories')->nullOnDelete();
       $table->string('memory_external_id', 128)->index();
       $table->string('owner_device_id', 128)->nullable()->index();
       $table->string('owner_actor_key', 128)->nullable()->index();

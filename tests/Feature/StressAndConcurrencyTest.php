@@ -186,6 +186,6 @@ class StressAndConcurrencyTest extends TestCase
       'hwFingerprint' => 'v2_fp_santiago_lock',
     ]);
     $newTableRes->assertStatus(201)
-      ->assertJsonPath('data.tableCode', 'Mesa 04 · Esmeralda');
+      ->assertJsonPath('data.tableCode', 'Mesa 4');
   }
 }

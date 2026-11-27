@@ -261,7 +261,7 @@ class GetProfileReactionsAction
     ];
   }
 
-  public static function countActivityForLock(int $eventId, DeviceLock $lock): int
+  public static function countActivityForLock(int|string $eventId, DeviceLock $lock): int
   {
     $actorKey = $lock->actor_key;
     $deviceId = $lock->device_id;

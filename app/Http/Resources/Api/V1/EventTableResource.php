@@ -22,13 +22,19 @@ class EventTableResource extends JsonResource
       ])->values()->all()
       : [];
 
-    $resolveStorageUrl = static function (?string $path, ?string $token) use ($request): string {
+    $diskName = (string) config('xv.media_disk', 'public');
+    $driver = (string) (config("filesystems.disks.{$diskName}.driver") ?? 'local');
+
+    $resolveStorageUrl = static function (?string $path, ?string $token) use ($request, $diskName, $driver): string {
       if (!$path) {
         return '';
       }
+      $suffix = $token ? '?v=' . substr($token, 4, 8) : '';
+      if ($driver !== 'local') {
+        return \Illuminate\Support\Facades\Storage::disk($diskName)->url($path) . $suffix;
+      }
       $base = $request->getSchemeAndHttpHost();
       $url = rtrim($base, '/') . '/storage/' . ltrim($path, '/');
-      $suffix = $token ? '?v=' . substr($token, 4, 8) : '';
       return $url . $suffix;
     };
 
@@ -36,8 +42,6 @@ class EventTableResource extends JsonResource
       'id' => $this->slug,
       'number' => $this->number,
       'code' => $this->code,
-      'zone' => $this->zone,
-      'centerpiece' => $this->centerpiece,
       'capacity' => min(10, (int) ($this->capacity ?: 10)),
       'guests' => $guests,
       'guestsConnected' => count($guests),

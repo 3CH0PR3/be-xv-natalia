@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class UploadOperationFile extends Model
 {
+  use HasVersion7Uuids;
   public const STATUS_QUEUED_UPLOAD = 'queued_upload';
   public const STATUS_UPLOADING = 'uploading';
   public const STATUS_UPLOADED = 'uploaded';
@@ -103,6 +105,14 @@ class UploadOperationFile extends Model
       return '';
     }
 
+    $diskName = $this->disk ?: (string) config('xv.media_disk', 'public');
+    $driver = (string) (config("filesystems.disks.{$diskName}.driver") ?? 'local');
+    $disk = Storage::disk($diskName);
+
+    if ($driver !== 'local') {
+      return $disk->url($path);
+    }
+
     $cleanOrigin = rtrim((string) ($origin ?: ''), '/');
     if ($cleanOrigin !== '') {
       return $cleanOrigin . '/storage/' . ltrim($path, '/');
@@ -112,7 +122,6 @@ class UploadOperationFile extends Model
       return rtrim($req->getSchemeAndHttpHost(), '/') . '/storage/' . ltrim($path, '/');
     }
 
-    $disk = Storage::disk($this->disk ?: config('xv.media_disk', 'public'));
     return $disk->url($path);
   }
 }

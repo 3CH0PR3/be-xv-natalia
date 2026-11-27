@@ -15,7 +15,7 @@ final readonly class CreateMemoryData
     public array $files = [],
     public array $posters = [],
     public ?string $externalId = null,
-    public ?int $deviceLockId = null,
+    public int|string|null $deviceLockId = null,
     public array $uploadedKeys = [],
     public array $fileOrder = [],
   ) {}

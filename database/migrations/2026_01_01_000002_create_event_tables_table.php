@@ -8,13 +8,11 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('event_tables', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
+      $table->uuid('id')->primary();
+      $table->foreignUuid('event_id')->constrained('events')->cascadeOnDelete();
       $table->string('slug', 40);
       $table->string('number', 10);
       $table->string('code', 80);
-      $table->string('zone', 120)->nullable();
-      $table->string('centerpiece', 160)->nullable();
       $table->unsignedTinyInteger('capacity')->default(10);
       $table->string('qr_token', 64)->nullable()->index();
       $table->string('qr_image_path', 255)->nullable();

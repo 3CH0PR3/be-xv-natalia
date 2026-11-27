@@ -36,14 +36,11 @@ final readonly class ListProfilesAction
     $cleanSlug = DeviceLock::normalizeSlug($term);
     $query->where(function (Builder $q) use ($term, $cleanSlug): void {
       $q->where('guest_name', 'like', "%{$term}%")
-        ->orWhere('guest_name_slug', 'like', "%{$cleanSlug}%");
-      if (is_numeric($term)) {
-        $q->orWhere('id', (int) $term);
-      }
+        ->orWhere('guest_name_slug', 'like', "%{$cleanSlug}%")
+        ->orWhere('id', $term);
       $q->orWhereHas('table', function (Builder $tq) use ($term): void {
         $tq->where('code', 'like', "%{$term}%")
-          ->orWhere('number', 'like', "%{$term}%")
-          ->orWhere('zone', 'like', "%{$term}%");
+          ->orWhere('number', 'like', "%{$term}%");
       });
     });
   }

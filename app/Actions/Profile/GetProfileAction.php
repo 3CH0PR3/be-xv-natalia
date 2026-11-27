@@ -37,10 +37,8 @@ class GetProfileAction
     if ($targetIdentifier !== null && trim($targetIdentifier) !== '') {
       $id = trim($targetIdentifier);
       $query->where(function (Builder $q) use ($id): void {
-        if (is_numeric($id)) {
-          $q->orWhere('id', (int) $id);
-        }
-        $q->orWhere('actor_key', $id)
+        $q->orWhere('id', $id)
+          ->orWhere('actor_key', $id)
           ->orWhere('device_id', $id)
           ->orWhere('guest_name_slug', DeviceLock::normalizeSlug($id))
           ->orWhere('guest_name', $id);

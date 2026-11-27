@@ -23,7 +23,7 @@ class ProcessPartyReactionJob implements ShouldQueue
   public int $timeout = 30;
 
   public function __construct(
-    public int $eventId,
+    public int|string $eventId,
     public ?string $actorKey = null,
     public ?string $deviceId = null,
     public ?int $count = null

@@ -23,7 +23,7 @@ class ProcessLikeJob implements ShouldQueue
   public int $timeout = 30;
 
   public function __construct(
-    public int $memoryId,
+    public int|string $memoryId,
     public string $actorKey,
     public string $choice,
     public ?int $likes = null,

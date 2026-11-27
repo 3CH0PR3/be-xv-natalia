@@ -420,7 +420,7 @@ final class UploadOperationHelper
     }
   }
 
-  public function clearRedisChunkKeys(int $fileId): void
+  public function clearRedisChunkKeys(int|string $fileId): void
   {
     if ($fileId <= 0) {
       return;
@@ -528,7 +528,7 @@ final class UploadOperationHelper
     }
   }
 
-  public function acquireBroadcastThrottle(int $operationId, int $ttlSeconds = 1): bool
+  public function acquireBroadcastThrottle(int|string $operationId, int $ttlSeconds = 1): bool
   {
     if ($operationId <= 0) {
       return true;
@@ -541,7 +541,7 @@ final class UploadOperationHelper
     }
   }
 
-  public function trackRedisChunk(int $fileId, int $chunkIndex): array
+  public function trackRedisChunk(int|string $fileId, int $chunkIndex): array
   {
     try {
       $key = $this->redisChunkSetKey($fileId);
@@ -557,7 +557,7 @@ final class UploadOperationHelper
     }
   }
 
-  public function readRedisChunks(int $fileId): array
+  public function readRedisChunks(int|string $fileId): array
   {
     try {
       $raw = Redis::sMembers($this->redisChunkSetKey($fileId));
@@ -570,7 +570,7 @@ final class UploadOperationHelper
     }
   }
 
-  public function acquireJobDispatchLock(int $fileId): bool
+  public function acquireJobDispatchLock(int|string $fileId): bool
   {
     try {
       return (bool) Redis::set($this->redisDispatchLockKey($fileId), '1', 'EX', 86400, 'NX');
@@ -749,12 +749,12 @@ final class UploadOperationHelper
     ];
   }
 
-  private function redisChunkSetKey(int $fileId): string
+  private function redisChunkSetKey(int|string $fileId): string
   {
     return "xv:op_file:{$fileId}:chunks";
   }
 
-  private function redisDispatchLockKey(int $fileId): string
+  private function redisDispatchLockKey(int|string $fileId): string
   {
     return "xv:op_file:{$fileId}:dispatched";
   }

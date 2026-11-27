@@ -8,11 +8,11 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::create('memories', function (Blueprint $table): void {
-      $table->id();
+      $table->uuid('id')->primary();
       $table->string('external_id', 128)->unique('uq_memories_external_id');
-      $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
-      $table->foreignId('event_table_id')->nullable()->constrained('event_tables')->nullOnDelete();
-      $table->foreignId('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
+      $table->foreignUuid('event_id')->constrained('events')->cascadeOnDelete();
+      $table->foreignUuid('event_table_id')->nullable()->constrained('event_tables')->nullOnDelete();
+      $table->foreignUuid('device_lock_id')->nullable()->constrained('device_locks')->nullOnDelete();
       $table->string('guest_name', 80);
       $table->string('table_code', 80);
       $table->string('owner_device_id', 128)->nullable();

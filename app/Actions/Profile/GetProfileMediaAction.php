@@ -6,18 +6,17 @@ use App\Models\DeviceLock;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class GetProfileMediaAction
 {
-  public function execute(string $id, string $type = 'avatar'): BinaryFileResponse
+  public function execute(string $id, string $type = 'avatar'): BinaryFileResponse|StreamedResponse
   {
     $trimmed = trim($id);
     $lock = DeviceLock::where(function (Builder $q) use ($trimmed): void {
-      if (is_numeric($trimmed)) {
-        $q->orWhere('id', (int) $trimmed);
-      }
-      $q->orWhere('actor_key', $trimmed)
+      $q->orWhere('id', $trimmed)
+        ->orWhere('actor_key', $trimmed)
         ->orWhere('device_id', $trimmed)
         ->orWhere('guest_name_slug', DeviceLock::normalizeSlug($trimmed))
         ->orWhere('guest_name', $trimmed);
@@ -32,23 +31,42 @@ class GetProfileMediaAction
       throw new NotFoundHttpException("El perfil no cuenta con imagen de {$type}.");
     }
 
-    $diskName = config('xv.media_disk', 'public');
+    $diskName = (string) config('xv.media_disk', 'public');
+    $driver = (string) (config("filesystems.disks.{$diskName}.driver") ?? 'local');
     $disk = Storage::disk($diskName);
 
     if (!$disk->exists($relativePath)) {
       throw new NotFoundHttpException("El archivo de {$type} no existe en el almacenamiento.");
     }
 
-    $fullPath = $disk->path($relativePath);
-    $detectedMime = is_file($fullPath) ? (mime_content_type($fullPath) ?: null) : null;
-    $mime = $detectedMime ?: 'image/jpeg';
-
-    return response()->file($fullPath, [
-      'Content-Type' => $mime,
+    $headers = [
       'Access-Control-Allow-Origin' => '*',
       'Access-Control-Allow-Methods' => 'GET, OPTIONS',
       'Access-Control-Allow-Headers' => '*',
       'Cache-Control' => 'public, max-age=86400, stale-while-revalidate=604800',
-    ]);
+    ];
+
+    if ($driver !== 'local') {
+      $mime = $disk->mimeType($relativePath) ?: 'image/jpeg';
+      return response()->stream(static function () use ($disk, $relativePath): void {
+        $stream = $disk->readStream($relativePath);
+        if ($stream === false) {
+          return;
+        }
+        try {
+          fpassthru($stream);
+        } finally {
+          if (is_resource($stream)) {
+            fclose($stream);
+          }
+        }
+      }, 200, array_merge($headers, ['Content-Type' => $mime]));
+    }
+
+    $fullPath = $disk->path($relativePath);
+    $detectedMime = is_file($fullPath) ? (mime_content_type($fullPath) ?: null) : null;
+    $mime = $detectedMime ?: 'image/jpeg';
+
+    return response()->file($fullPath, array_merge($headers, ['Content-Type' => $mime]));
   }
 }

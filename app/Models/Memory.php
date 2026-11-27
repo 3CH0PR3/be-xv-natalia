@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasVersion7Uuids;
 use App\Observers\MemoryObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ObservedBy([MemoryObserver::class])]
 class Memory extends Model
 {
+  use HasVersion7Uuids;
   public const STATUS_APPROVED = 'approved';
   public const STATUS_PENDING = 'pending';
   public const STATUS_REJECTED = 'rejected';
@@ -126,7 +128,7 @@ class Memory extends Model
 
   // --- Query Scopes ---
 
-  public function scopeForEvent(Builder $query, int $eventId): Builder
+  public function scopeForEvent(Builder $query, int|string $eventId): Builder
   {
     return $query->where('event_id', $eventId);
   }
