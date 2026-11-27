@@ -54,10 +54,12 @@ class CreateCommentAction
       $nextCount = (int) $memory->fresh()->comments_count;
       $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');
       $payload = (new MemoryCommentResource($fresh))->resolve();
+      $broadcastPayload = $payload;
+      unset($broadcastPayload['likedByMe']);
 
-      DB::afterCommit(static function () use ($comment, $eventCode, $memory, $payload, $nextCount): void {
+      DB::afterCommit(static function () use ($comment, $eventCode, $memory, $broadcastPayload, $nextCount): void {
         try {
-          broadcast(new CommentCreated($eventCode, $memory->external_id, $payload, $nextCount))->toOthers();
+          broadcast(new CommentCreated($eventCode, $memory->external_id, $broadcastPayload, $nextCount))->toOthers();
         } catch (\Throwable $e) {
           Log::warning('Direct broadcast of CommentCreated failed: ' . $e->getMessage());
         }

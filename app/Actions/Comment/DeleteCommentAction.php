@@ -7,10 +7,14 @@ use App\Events\CommentDeleted;
 use App\Exceptions\DomainRuleException;
 use App\Models\Memory;
 use App\Models\MemoryComment;
+use App\Support\Cache\Keys\EventKeys;
+use App\Traits\Cache\InvalidatesCache;
 use Illuminate\Support\Facades\DB;
 
 class DeleteCommentAction
 {
+  use InvalidatesCache;
+
   public function execute(string $memoryExternalId, string $commentExternalId, ViewerContextData $viewer): array
   {
     return DB::transaction(function () use ($memoryExternalId, $commentExternalId, $viewer): array {
@@ -64,6 +68,11 @@ class DeleteCommentAction
       app(\App\Services\CommentLikeCounterService::class)->clear($comment->id);
       $comment->delete();
       $newCount = MemoryComment::where('memory_id', $memory->id)->count();
+      $memory->update(['comments_count' => $newCount]);
+
+      $this->forgetItem(EventKeys::memoryComments($memory->id));
+      $this->forgetItem(EventKeys::memory($memory->external_id));
+      $this->scanAndDelete(EventKeys::feedPattern($memory->event_id));
 
       DB::afterCommit(static function () use ($eventCode, $memoryExternalId, $commentExternalId, $newCount): void {
         broadcast(new CommentDeleted($eventCode, $memoryExternalId, $commentExternalId, $newCount))->toOthers();

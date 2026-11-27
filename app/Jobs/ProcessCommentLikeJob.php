@@ -47,12 +47,13 @@ class ProcessCommentLikeJob implements ShouldQueue
     $likesCount = $this->likesCount;
     if ($likesCount === null) {
       $likesCount = $comment->commentLikes()->count();
-      $comment->update(['likes_count' => $likesCount]);
     }
+    $comment->update(['likes_count' => max(0, (int) $likesCount)]);
 
     $liked = $this->liked ?? $comment->commentLikes()->where('actor_key', $this->actorKey)->exists();
 
     $this->forgetItem(EventKeys::memoryComments($memory->id));
+    $this->forgetItem(EventKeys::memory($memory->external_id));
 
     if ($this->shouldBroadcast) {
       $eventCode = $memory->event?->code ?? config('xv.default_event_code', 'XV-NATALIA');

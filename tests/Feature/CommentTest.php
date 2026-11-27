@@ -241,4 +241,72 @@ class CommentTest extends TestCase
       ->assertJsonPath('data.likes', 2)
       ->assertJsonPath('data.liked', true);
   }
+
+  public function test_comment_like_job_persists_db_likes_count_and_broadcast_omits_sender_liked_by_me(): void
+  {
+    \Illuminate\Support\Facades\Event::fake([
+      \App\Events\CommentCreated::class,
+      \App\Events\CommentUpdated::class,
+      \App\Events\CommentLikeUpdated::class,
+    ]);
+
+    $this->postJson('/api/v1/checkin', [
+      'eventCode' => 'XV-NATALIA',
+      'tableCode' => 'Mesa 01 · Principal',
+      'guestName' => 'Author Uno',
+      'deviceId' => 'dev-author-1',
+      'actorKey' => 'actor-author-1',
+    ])->assertStatus(201);
+
+    $memRes = $this->withHeaders(['X-Device-Id' => 'dev-author-1'])
+      ->postJson('/api/v1/memories', [
+        'guestName' => 'Author Uno',
+        'tableCode' => 'Mesa 01 · Principal',
+        'ownerDeviceId' => 'dev-author-1',
+        'ownerActorKey' => 'actor-author-1',
+        'files' => [UploadedFile::fake()->image('self.jpg')],
+      ]);
+    $memoryId = $memRes->json('data.id');
+
+    $commentRes = $this->withHeaders(['X-Device-Id' => 'dev-author-1', 'X-Actor-Key' => 'actor-author-1'])
+      ->postJson("/api/v1/memories/{$memoryId}/comments", [
+        'author' => 'Author Uno',
+        'table' => 'Mesa 01 · Principal',
+        'text' => 'Mi propio comentario',
+        'ownerDeviceId' => 'dev-author-1',
+        'ownerActorKey' => 'actor-author-1',
+      ])->assertStatus(201);
+    $commentId = $commentRes->json('data.id');
+
+    \Illuminate\Support\Facades\Event::assertDispatched(\App\Events\CommentCreated::class, function ($event) {
+      return !array_key_exists('likedByMe', $event->comment);
+    });
+
+    // Author likes their OWN comment
+    $this->withHeaders(['X-Device-Id' => 'dev-author-1', 'X-Actor-Key' => 'actor-author-1'])
+      ->postJson("/api/v1/memories/{$memoryId}/comments/{$commentId}/like", [
+        'actorKey' => 'actor-author-1',
+        'deviceId' => 'dev-author-1',
+      ])
+      ->assertStatus(200)
+      ->assertJsonPath('data.likes', 1)
+      ->assertJsonPath('data.liked', true);
+
+    \Illuminate\Support\Facades\Event::assertDispatched(\App\Events\CommentLikeUpdated::class, function ($event) use ($commentId) {
+      return $event->commentId === $commentId && $event->likes === 1 && $event->liked === true;
+    });
+
+    $commentRow = \App\Models\MemoryComment::where('external_id', $commentId)->firstOrFail();
+    $this->assertEquals(1, (int) $commentRow->likes_count);
+
+    // Editing a liked comment broadcasts without sender likedByMe
+    $this->withHeaders(['X-Device-Id' => 'dev-author-1', 'X-Actor-Key' => 'actor-author-1'])
+      ->patchJson("/api/v1/memories/{$memoryId}/comments/{$commentId}", [
+        'text' => 'Mi propio comentario editado',
+      ])->assertStatus(200);
+
+    \Illuminate\Support\Facades\Event::assertDispatched(\App\Events\CommentUpdated::class, function ($event) {
+      return !array_key_exists('likedByMe', $event->comment) && $event->comment['text'] === 'Mi propio comentario editado';
+    });
+  }
 }
