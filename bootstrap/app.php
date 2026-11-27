@@ -30,6 +30,18 @@ return Application::configure(basePath: dirname(__DIR__))
   })
   ->withExceptions(function (Exceptions $exceptions): void {
     $exceptions->dontReport(DomainRuleException::class);
+
+    $exceptions->report(function (Throwable $e) {
+      if (app()->environment('production')) {
+        try {
+          (new \App\Notifications\TelegramNotifiable())
+            ->notify(new \App\Notifications\ErrorNotification($e));
+        } catch (\Throwable) {
+          // Silenciar errores del notificador para no generar loops
+        }
+      }
+    });
+
     $exceptions->render(function (DomainRuleException $e, Request $request) {
       if ($request->expectsJson() || $request->is('api/*')) {
         return response()->json($e->toArray(), $e->httpStatus);
