@@ -274,7 +274,7 @@ return [
         'queue' => ['media-heavy'],
         'balance' => 'auto',
         'autoScalingStrategy' => 'time',
-        'minProcesses' => 0,
+        'minProcesses' => 1,
         'maxProcesses' => 1,
         'memory' => 512,
         'tries' => 2,
