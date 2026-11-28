@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class MemoryCollection extends ResourceCollection
 {
@@ -26,16 +27,21 @@ class MemoryCollection extends ResourceCollection
 
   public function paginationInformation($request, array $paginated, array $default): array
   {
-    // Cursor pagination — no hay total ni lastPage
     $nextCursor = $paginated['next_cursor'] ?? null;
-    $hasMore = $paginated['next_page_url'] !== null;
+    $hasMore    = $paginated['next_page_url'] !== null;
+
+    Log::info('WALL_FEED_HTTP_RESPONSE', [
+      'next_cursor_raw' => $nextCursor,
+      'has_more'        => $hasMore,
+      'per_page'        => $paginated['per_page'] ?? null,
+      'next_page_url'   => $paginated['next_page_url'] ?? null,
+    ]);
 
     return [
       'meta' => [
-        'perPage'    => $paginated['per_page'],
-        'hasMore'    => $hasMore,
-        'nextCursor' => $nextCursor,
-        // Compatibilidad con clientes que leen total/lastPage (retornar null)
+        'perPage'     => $paginated['per_page'],
+        'hasMore'     => $hasMore,
+        'nextCursor'  => $nextCursor,
         'currentPage' => null,
         'lastPage'    => null,
         'total'       => null,
