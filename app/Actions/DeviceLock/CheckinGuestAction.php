@@ -143,6 +143,21 @@ class CheckinGuestAction
         } catch (\Throwable $e) {
           report($e);
         }
+
+        // Persistir la notificación de checkin en BD para que aparezca
+        // en el historial de todos los invitados que ya estaban conectados
+        try {
+          \App\Models\GuestNotification::create([
+            'event_code'      => $event->code,
+            'owner_device_id' => 'broadcast',   // destinatario global
+            'owner_actor_key' => 'broadcast',
+            'type'            => 'checkin',
+            'actor_name'      => $lock->guest_name,
+            'actor_key'       => $lock->actor_key,
+            'extra'           => $lockedTable->code,
+            'is_read'         => false,
+          ]);
+        } catch (\Throwable) {}
       });
 
       return $lock->fresh(['table']);
