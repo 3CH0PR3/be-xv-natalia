@@ -4,7 +4,6 @@ namespace App\Http\Resources\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Illuminate\Support\Facades\Log;
 
 class MemoryCollection extends ResourceCollection
 {
@@ -29,13 +28,6 @@ class MemoryCollection extends ResourceCollection
   {
     $nextCursor = $paginated['next_cursor'] ?? null;
     $hasMore    = $paginated['next_page_url'] !== null;
-
-    Log::warning('WALL_FEED_HTTP_RESPONSE', [
-      'next_cursor_raw' => $nextCursor,
-      'has_more'        => $hasMore,
-      'per_page'        => $paginated['per_page'] ?? null,
-      'next_page_url'   => $paginated['next_page_url'] ?? null,
-    ]);
 
     return [
       'meta' => [

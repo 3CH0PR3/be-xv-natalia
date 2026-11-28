@@ -57,6 +57,7 @@ class ProcessLikeJob implements ShouldQueue
       'likes_count' => $likes,
       'fires_count' => $fires,
       'cheers_count' => $cheers,
+      'engagement_score' => $likes + $fires + $cheers + $memory->comments_count,
     ]);
 
     $this->forgetItem(EventKeys::memory($memory->external_id));

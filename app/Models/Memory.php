@@ -38,6 +38,7 @@ class Memory extends Model
     'cheers_count',
     'comments_count',
     'shares_count',
+    'engagement_score',
     'timestamp_ms',
   ];
 
@@ -49,6 +50,7 @@ class Memory extends Model
       'cheers_count' => 'integer',
       'comments_count' => 'integer',
       'shares_count' => 'integer',
+      'engagement_score' => 'integer',
       'timestamp_ms' => 'integer',
       'caption_edited_at' => 'datetime',
     ];
@@ -195,11 +197,20 @@ class Memory extends Model
 
   public function scopeNewestFirst(Builder $query): Builder
   {
-    // created_at es datetime indexado, id es UUID v7 (ordenable lexicográficamente).
-    // Este orden compuesto es estable y funciona correctamente con cursorPaginate().
-    // timestamp_ms causaba problemas porque el cursor de Laravel no lo comparaba bien
-    // al serializar/deserializar con múltiples columnas de orden.
     return $query->orderByDesc('created_at')->orderByDesc('id');
+  }
+
+  public function scopeMostEngaged(Builder $query): Builder
+  {
+    // engagement_score es una columna real (likes+fires+cheers+comments) mantenida
+    // por ProcessLikeJob y MemoryCommentObserver. Al ser columna real el cursor
+    // de Laravel puede serializar/deserializar las 3 columnas correctamente.
+    return $query->orderByDesc('engagement_score')->orderByDesc('created_at')->orderByDesc('id');
+  }
+
+  public function recalculateEngagementScore(): void
+  {
+    $this->engagement_score = $this->likes_count + $this->fires_count + $this->cheers_count + $this->comments_count;
   }
 
   public function scopeWithWallRelations(Builder $query, ?string $viewerActorKey = null, ?string $viewerDeviceId = null): Builder

@@ -43,6 +43,14 @@ class MemoryCommentObserver
   private function recountComments(int|string $memoryId): void
   {
     $exactCount = MemoryComment::where('memory_id', $memoryId)->count();
-    Memory::whereKey($memoryId)->update(['comments_count' => $exactCount]);
+    $memory = Memory::whereKey($memoryId)->first(['id', 'likes_count', 'fires_count', 'cheers_count']);
+    if (!$memory) {
+      return;
+    }
+    $score = ($memory->likes_count ?? 0) + ($memory->fires_count ?? 0) + ($memory->cheers_count ?? 0) + $exactCount;
+    Memory::whereKey($memoryId)->update([
+      'comments_count' => $exactCount,
+      'engagement_score' => $score,
+    ]);
   }
 }

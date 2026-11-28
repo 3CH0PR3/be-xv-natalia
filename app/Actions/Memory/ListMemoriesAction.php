@@ -7,8 +7,7 @@ use App\DTOs\Shared\ViewerContextData;
 use App\Models\Event;
 use App\Models\Memory;
 use Illuminate\Contracts\Pagination\CursorPaginator;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
+
 
 class ListMemoriesAction
 {
@@ -26,15 +25,6 @@ class ListMemoriesAction
       && $filter->category === null
       && !$filter->includeAllStatuses;
 
-    Log::warning('WALL_FEED_CURSOR', [
-      'cursor'       => $filter->cursor ?? 'null (primera pagina)',
-      'per_page'     => $filter->perPage,
-      'scope'        => $filter->ownerDeviceId ? 'mis-fotos' : 'muro',
-      'event_id'     => $event->id,
-      'search'       => $filter->search,
-      'status'       => $filter->status,
-    ]);
-
     // IMPORTANTE: NO cachear el CursorPaginator en Redis —
     // el objeto contiene closures que no se pueden serializar correctamente.
     // El caché de Redis en versiones anteriores devolvía un paginator corrupto
@@ -51,27 +41,13 @@ class ListMemoriesAction
       ->when($filter->ownerDeviceId, fn ($q) => $q->ownedBy($filter->ownerDeviceId))
       ->filterCategory($filter->category)
       ->search($filter->search)
-      ->newestFirst()
+      ->mostEngaged()
       ->cursorPaginate(
         $filter->perPage,
         ['memories.*'],
         'cursor',
         $filter->cursor ? \Illuminate\Pagination\Cursor::fromEncoded($filter->cursor) : null
       );
-
-    $items       = $paginator->items();
-    $nextCursor  = $paginator->nextCursor()?->encode();
-    $firstId     = !empty($items) ? $items[0]->id : null;
-    $lastId      = !empty($items) ? $items[count($items) - 1]->id : null;
-
-    Log::warning('WALL_FEED_CURSOR_RESULT', [
-      'total_returned' => count($items),
-      'has_more'       => $paginator->hasMorePages(),
-      'next_cursor'    => $nextCursor ?? 'null (no hay mas paginas)',
-      'first_id'       => $firstId,
-      'last_id'        => $lastId,
-      'cursor_in'      => $filter->cursor ?? 'null',
-    ]);
 
     return $paginator;
   }
