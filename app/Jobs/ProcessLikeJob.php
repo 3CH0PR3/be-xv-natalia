@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Notification\CreateGuestNotificationAction;
 use App\Events\MemoryReactionUpdated;
 use App\Models\Memory;
 use App\Models\MemoryReaction;
@@ -74,6 +75,18 @@ class ProcessLikeJob implements ShouldQueue
         $this->choice,
         $this->deviceId
       ));
+
+      // Notificación al dueño del recuerdo
+      try {
+        app(CreateGuestNotificationAction::class)->execute(
+          type: 'reaction',
+          memory: $memory->loadMissing(['event', 'mediaItems']),
+          actorName: (string) (\App\Models\DeviceLock::where('actor_key', $this->actorKey)->value('guest_name') ?? 'Alguien'),
+          actorKey: $this->actorKey,
+          actorDeviceId: (string) ($this->deviceId ?? ''),
+          extra: $this->choice,
+        );
+      } catch (\Throwable) {}
     }
   }
 

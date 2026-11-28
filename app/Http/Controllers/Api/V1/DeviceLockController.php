@@ -30,14 +30,16 @@ class DeviceLockController extends Controller
       return $this->sendResponse([
         'lock' => null,
         'confirmedMissingOnServer' => true,
-      ], 'No se encontró bloqueo de dispositivo existente.', 200);
+      ], 'No se encontró bloqueo de dispositivo existente.', 200)
+        ->withHeaders(['Cache-Control' => 'no-store, no-cache, must-revalidate', 'Pragma' => 'no-cache']);
     }
 
     return $this->sendResponse([
       'lock' => new DeviceLockResource($resolved['lock'], $resolved['restoredByFingerprint']),
       'restoredByFingerprint' => $resolved['restoredByFingerprint'],
       'confirmedMissingOnServer' => false,
-    ], 'Bloqueo de dispositivo resuelto.', 200);
+    ], 'Bloqueo de dispositivo resuelto.', 200)
+      ->withHeaders(['Cache-Control' => 'no-store, no-cache, must-revalidate', 'Pragma' => 'no-cache']);
   }
 
   public function status(string $deviceId, DeviceStatusRequest $request): JsonResponse

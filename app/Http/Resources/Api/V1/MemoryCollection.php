@@ -26,14 +26,20 @@ class MemoryCollection extends ResourceCollection
 
   public function paginationInformation($request, array $paginated, array $default): array
   {
+    // Cursor pagination — no hay total ni lastPage
+    $nextCursor = $paginated['next_cursor'] ?? null;
+    $hasMore = $paginated['next_page_url'] !== null;
+
     return [
       'meta' => [
-        'currentPage' => $paginated['current_page'],
-        'lastPage' => $paginated['last_page'],
-        'perPage' => $paginated['per_page'],
-        'total' => $paginated['total'],
+        'perPage'    => $paginated['per_page'],
+        'hasMore'    => $hasMore,
+        'nextCursor' => $nextCursor,
+        // Compatibilidad con clientes que leen total/lastPage (retornar null)
+        'currentPage' => null,
+        'lastPage'    => null,
+        'total'       => null,
       ],
-      'links' => $default['links'] ?? [],
     ];
   }
 }

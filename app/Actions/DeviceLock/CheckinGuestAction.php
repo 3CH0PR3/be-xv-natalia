@@ -3,6 +3,7 @@
 namespace App\Actions\DeviceLock;
 
 use App\DTOs\DeviceLock\CheckinGuestData;
+use App\Events\GuestCheckedIn;
 use App\Events\TablesUpdated;
 use App\Exceptions\DomainRuleException;
 use App\Http\Resources\Api\V1\DeviceLockResource;
@@ -126,12 +127,19 @@ class CheckinGuestAction
       ))));
       $this->syncFingerprints->execute($lock, $candidatesToSync);
 
-      DB::afterCommit(static function () use ($event): void {
+      DB::afterCommit(static function () use ($event, $lock, $lockedTable): void {
         try {
           $tables = EventTable::with('deviceLocks')->forEvent($event->id)->ordered()->get();
           $payload = EventTableResource::collection($tables)->resolve();
           ProcessTableOccupancyJob::dispatch($event->id, $payload);
           broadcast(new TablesUpdated($event->code, $payload));
+          // Notificar a todos los invitados del evento que alguien llegó
+          broadcast(new GuestCheckedIn(
+            $event->code,
+            $lock->guest_name,
+            $lockedTable->code,
+            $lock->actor_key,
+          ));
         } catch (\Throwable $e) {
           report($e);
         }

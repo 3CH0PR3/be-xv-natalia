@@ -24,6 +24,7 @@ class ListMemoriesRequest extends FormRequest
       'category' => ['nullable', 'string', Rule::in(['all', 'comments', 'videos', 'albums'])],
       'search' => ['nullable', 'string', 'max:120'],
       'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+      'cursor'   => ['nullable', 'string', 'max:500'],
     ];
   }
 
@@ -37,6 +38,7 @@ class ListMemoriesRequest extends FormRequest
       category: $this->filled('category') ? trim((string) $this->input('category')) : null,
       search: $this->filled('search') ? trim((string) $this->input('search')) : null,
       perPage: min(max((int) $this->input('per_page', 12), 1), 50),
+      cursor: $this->filled('cursor') ? trim((string) $this->input('cursor')) : null,
     );
   }
 

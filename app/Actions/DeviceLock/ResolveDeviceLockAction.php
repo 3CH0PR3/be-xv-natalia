@@ -16,6 +16,13 @@ class ResolveDeviceLockAction
   /** @return array{lock: ?DeviceLock, restoredByFingerprint: bool} */
   public function execute(Event $event, ResolveDeviceLockData $data): array
   {
+    // Un dispositivo sin deviceId es completamente nuevo en este evento.
+    // No intentar restaurar sesión por fingerprint/hardware: podría colisionar
+    // con otro invitado que comparta red Wi-Fi, modelo de teléfono o GPU.
+    if ($data->deviceId === '' || $data->deviceId === null) {
+      return ['lock' => null, 'restoredByFingerprint' => false];
+    }
+
     $extraFps = array_filter([$data->deviceId, $data->hwFingerprint]);
     $candidates = array_values(array_unique(array_merge($data->candidateFingerprints, $extraFps)));
 

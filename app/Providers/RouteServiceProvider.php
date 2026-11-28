@@ -37,6 +37,7 @@ class RouteServiceProvider extends ServiceProvider
     $this->mapModerationApiRoutes();
     $this->mapReleasesApiRoutes();
     $this->mapProfileApiRoutes();
+    $this->mapNotificationsApiRoutes();
   }
 
   protected function mapEventApiRoutes(): void
@@ -86,6 +87,13 @@ class RouteServiceProvider extends ServiceProvider
   {
     $this->apiGroup(['api'], static function (): void {
       require base_path('routes/apis/profile/api-profile.php');
+    });
+  }
+
+  protected function mapNotificationsApiRoutes(): void
+  {
+    $this->apiGroup(['api'], static function (): void {
+      require base_path('routes/apis/profile/api-notifications.php');
     });
   }
 }

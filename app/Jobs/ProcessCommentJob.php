@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Notification\CreateGuestNotificationAction;
 use App\Events\CommentCreated;
 use App\Http\Resources\Api\V1\MemoryCommentResource;
 use App\Models\Memory;
@@ -55,6 +56,18 @@ class ProcessCommentJob implements ShouldQueue
 
       broadcast(new CommentCreated($eventCode, $memory->external_id, $payload, $commentsCount));
     }
+
+    // Notificación al dueño del recuerdo
+    try {
+      app(CreateGuestNotificationAction::class)->execute(
+        type: 'comment',
+        memory: $memory->loadMissing(['event', 'mediaItems']),
+        actorName: (string) ($comment->deviceLock?->guest_name ?? 'Alguien'),
+        actorKey: (string) ($comment->deviceLock?->actor_key ?? ''),
+        actorDeviceId: (string) ($comment->deviceLock?->device_id ?? ''),
+        extra: mb_strimwidth((string) ($comment->body ?? ''), 0, 120),
+      );
+    } catch (\Throwable) {}
   }
 
   public function failed(\Throwable $exception): void

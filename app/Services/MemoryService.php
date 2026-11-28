@@ -20,7 +20,7 @@ use App\DTOs\Memory\ToggleReactionData;
 use App\DTOs\Memory\UpdateCaptionData;
 use App\DTOs\Shared\ViewerContextData;
 use App\Models\Memory;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final readonly class MemoryService
@@ -39,7 +39,7 @@ final readonly class MemoryService
     private IncrementMemoryShareAction $incrementShare,
   ) {}
 
-  public function listMemories(MemoryFilterData $filter, ViewerContextData $viewer): LengthAwarePaginator
+  public function listMemories(MemoryFilterData $filter, ViewerContextData $viewer): CursorPaginator
   {
     return $this->listMemories->execute($filter, $viewer);
   }

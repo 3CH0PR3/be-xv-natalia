@@ -12,6 +12,7 @@ final readonly class MemoryFilterData
     public ?string $category,
     public ?string $search,
     public int $perPage,
+    public ?string $cursor = null,
   ) {}
 
   public static function fromArray(array $data): self
@@ -24,6 +25,7 @@ final readonly class MemoryFilterData
       category: $data['category'] ?? null,
       search: $data['search'] ?? null,
       perPage: (int) ($data['perPage'] ?? 12),
+      cursor: $data['cursor'] ?? null,
     );
   }
 
@@ -37,6 +39,7 @@ final readonly class MemoryFilterData
       'category' => $this->category,
       'search' => $this->search,
       'perPage' => $this->perPage,
+      'cursor' => $this->cursor,
     ];
   }
 }
