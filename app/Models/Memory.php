@@ -195,7 +195,10 @@ class Memory extends Model
 
   public function scopeNewestFirst(Builder $query): Builder
   {
-    return $query->orderByDesc('timestamp_ms');
+    // Orden compuesto para cursor-based pagination estable:
+    // timestamp_ms puede tener duplicados (varias fotos mismo segundo),
+    // id (UUID v7) es único y monotónico — garantiza cursor sin huecos ni duplicados.
+    return $query->orderByDesc('timestamp_ms')->orderByDesc('id');
   }
 
   public function scopeWithWallRelations(Builder $query, ?string $viewerActorKey = null, ?string $viewerDeviceId = null): Builder
