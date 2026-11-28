@@ -47,6 +47,11 @@ class ListMemoriesAction
       ->filterCategory($filter->category)
       ->search($filter->search)
       ->newestFirst()
-      ->cursorPaginate($filter->perPage, ['*'], 'cursor', $filter->cursor ? \Illuminate\Pagination\Cursor::fromEncoded($filter->cursor) : null);
+      ->cursorPaginate(
+        $filter->perPage,
+        ['memories.*'],
+        'cursor',
+        $filter->cursor ? \Illuminate\Pagination\Cursor::fromEncoded($filter->cursor) : null
+      );
   }
 }
