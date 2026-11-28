@@ -30,7 +30,7 @@ class MemoryCollection extends ResourceCollection
     $nextCursor = $paginated['next_cursor'] ?? null;
     $hasMore    = $paginated['next_page_url'] !== null;
 
-    Log::info('WALL_FEED_HTTP_RESPONSE', [
+    Log::warning('WALL_FEED_HTTP_RESPONSE', [
       'next_cursor_raw' => $nextCursor,
       'has_more'        => $hasMore,
       'per_page'        => $paginated['per_page'] ?? null,

@@ -26,12 +26,11 @@ class ListMemoriesAction
       && $filter->category === null
       && !$filter->includeAllStatuses;
 
-    Log::info('WALL_FEED_CURSOR', [
+    Log::warning('WALL_FEED_CURSOR', [
       'cursor'       => $filter->cursor ?? 'null (primera pagina)',
       'per_page'     => $filter->perPage,
       'scope'        => $filter->ownerDeviceId ? 'mis-fotos' : 'muro',
       'event_id'     => $event->id,
-      'can_cache'    => $canCache,
       'search'       => $filter->search,
       'status'       => $filter->status,
     ]);
@@ -65,7 +64,7 @@ class ListMemoriesAction
     $firstId     = !empty($items) ? $items[0]->id : null;
     $lastId      = !empty($items) ? $items[count($items) - 1]->id : null;
 
-    Log::info('WALL_FEED_CURSOR_RESULT', [
+    Log::warning('WALL_FEED_CURSOR_RESULT', [
       'total_returned' => count($items),
       'has_more'       => $paginator->hasMorePages(),
       'next_cursor'    => $nextCursor ?? 'null (no hay mas paginas)',
